@@ -11,7 +11,7 @@ import Footer from "./components/Pages/HomePage/Footer/Footer";
 import DomainPage from "./components/Pages/DomainPage/DomainPage";
 import TitlePage from "./components/Pages/TitlePage/TitlePage"; // Import TitlePage
 import ProjectPage from "./components/Pages/ProjectPage/ProjectPage"; // Import ProjectPage
-
+import DomainAdder from "./components/Pages/DomainPage/DomainAdder";
 
 function App() {
   return (
@@ -29,12 +29,17 @@ function App() {
               <ContactForm />
               <DevelopersSection />
               <Footer />
-            </>}
+            </>
+          }
         />
         <Route path="/domains" element={<DomainPage />} />
         {/* Add routes for TitlePage and ProjectPage */}
         <Route path="/domains/:domainId/:level" element={<TitlePage />} />
-        <Route path="/domains/:domainId/:level/:topicId" element={<ProjectPage />} />
+        <Route
+          path="/domains/:domainId/:level/:topicId"
+          element={<ProjectPage />}
+        />
+        <Route path="/domainform" element={<DomainAdder />} />
       </Routes>
     </Router>
   );
