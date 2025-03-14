@@ -19,7 +19,7 @@ mongoose.connect('mongodb+srv://csundar993:S1RjXYDtC73UGJCE@cluster2.3g8fa.mongo
 app.use(cors());
 app.use(express.json());
 
-// Ensure uploads directory exists
+
 const uploadDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
@@ -27,7 +27,9 @@ if (!fs.existsSync(uploadDir)) {
 
 app.use("/api/domains", domainRoutes);
 app.use("/api/topics", topicRoutes);
-app.use("/assets", express.static(path.join(__dirname, "../frontend/src/assets")));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
@@ -38,7 +40,7 @@ const upload = multer({ storage });
 
 app.post('/domainform', upload.single('image'), async (req, res) => {
   const { title, description, topics } = req.body;
-  const imageurl = req.file ? `assets/${req.file.filename}` : null;
+  const imageurl = req.file ? `/uploads/${req.file.filename}` : null;
 
   let parsedTopics;
   try {

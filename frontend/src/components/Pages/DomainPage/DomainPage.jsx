@@ -80,7 +80,7 @@ const DomainPage = () => {
           >
             <div className="top-image">
               <img
-                src={`http://localhost:5000/${domain.imageurl}`}
+                src={`http://localhost:5000${domain.imageurl}`}
                 alt={domain.title}
               />
             </div>
