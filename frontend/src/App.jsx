@@ -9,8 +9,8 @@ import DevelopersSection from "./components/Pages/HomePage/Developers/Developers
 import Navbar from "./components/Pages/HomePage/navbar/navbar";
 import Footer from "./components/Pages/HomePage/Footer/Footer";
 import DomainPage from "./components/Pages/DomainPage/DomainPage";
-import TitlePage from "./components/Pages/TitlePage/TitlePage"; // Import TitlePage
-import ProjectPage from "./components/Pages/ProjectPage/ProjectPage"; // Import ProjectPage
+import TitlePage from "./components/Pages/TitlePage/TitlePage";
+import ProjectPage from "./components/Pages/ProjectPage/ProjectPage";
 import DomainAdder from "./components/Pages/DomainPage/DomainAdder";
 
 function App() {
@@ -33,7 +33,6 @@ function App() {
           }
         />
         <Route path="/domains" element={<DomainPage />} />
-        {/* Add routes for TitlePage and ProjectPage */}
         <Route path="/domains/:domainId/:level" element={<TitlePage />} />
         <Route
           path="/domains/:domainId/:level/:topicId"
