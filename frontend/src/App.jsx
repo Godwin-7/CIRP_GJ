@@ -12,6 +12,7 @@ import DomainPage from "./components/Pages/DomainPage/DomainPage";
 import TitlePage from "./components/Pages/TitlePage/TitlePage";
 import ProjectPage from "./components/Pages/ProjectPage/ProjectPage";
 import DomainAdder from "./components/Pages/DomainPage/DomainAdder";
+import UserForm from "./components/Pages/UserForm/UserForm";
 
 function App() {
   return (
@@ -39,6 +40,7 @@ function App() {
           element={<ProjectPage />}
         />
         <Route path="/domainform" element={<DomainAdder />} />
+        <Route path="/addidea" element={<UserForm />} />
       </Routes>
     </Router>
   );

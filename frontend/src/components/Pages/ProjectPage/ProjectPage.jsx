@@ -60,7 +60,12 @@ const ProjectPage = () => {
             <div className="author-avatar">{topic.author.name.charAt(0)}</div>
             <div className="author-text">
               <h3>{topic.author.name}</h3>
-              <p>Email: <a href={`mailto:${topic.author.email}`}>{topic.author.email}</a></p>
+              <p>
+                Email:{" "}
+                <a href={`mailto:${topic.author.email}`}>
+                  {topic.author.email}
+                </a>
+              </p>
               <p>Contact: {topic.author.contact}</p>
             </div>
           </div>

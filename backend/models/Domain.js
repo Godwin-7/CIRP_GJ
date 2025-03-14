@@ -9,6 +9,13 @@ const domainSchema = new mongoose.Schema({
         medium: { type: [String], required: true },
         hard: { type: [String], required: true },
     },
+    ideas: [
+        {
+            topic: { type: String, required: true },
+            description: { type: String, required: true },
+            content: { type: String, required: true }, // Store PDF file path
+            submittedAt: { type: Date, default: Date.now },
+        }]
 });
 
 const domain = mongoose.model("Domain", domainSchema);

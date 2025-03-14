@@ -13,9 +13,12 @@ const TitlePage = () => {
   useEffect(() => {
     // Convert `domainId` to lowercase before sending API request
     axios
-      .get(`http://localhost:5000/api/domains/${domainId.toLowerCase()}/topics`, {
-        params: { level: level || "all" },
-      })
+      .get(
+        `http://localhost:5000/api/domains/${domainId.toLowerCase()}/topics`,
+        {
+          params: { level: level || "all" },
+        }
+      )
       .then((response) => {
         console.log("API Response:", response.data); // Debugging
         if (Array.isArray(response.data)) {
@@ -26,7 +29,10 @@ const TitlePage = () => {
         setLoading(false);
       })
       .catch((error) => {
-        console.error("Error fetching topics:", error.response ? error.response.data : error.message);
+        console.error(
+          "Error fetching topics:",
+          error.response ? error.response.data : error.message
+        );
         setError("Error fetching topics. Please try again.");
         setLoading(false);
       });
@@ -43,7 +49,8 @@ const TitlePage = () => {
   return (
     <div className="title-page">
       <h1 className="title-page-title">
-        {domainId.charAt(0).toUpperCase() + domainId.slice(1)} - {level || "All Levels"}
+        {domainId.charAt(0).toUpperCase() + domainId.slice(1)} -{" "}
+        {level || "All Levels"}
       </h1>
       <h2 className="title-subtitle">Topics in this domain:</h2>
 
@@ -59,7 +66,9 @@ const TitlePage = () => {
             >
               <div className="topic-content">
                 <h2 className="topic-title">{topic.title}</h2>
-                <p className="topic-description">Explore more about {topic.title}.</p>
+                <p className="topic-description">
+                  Explore more about {topic.title}.
+                </p>
               </div>
             </div>
           ))}
