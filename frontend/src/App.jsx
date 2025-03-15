@@ -34,7 +34,7 @@ function App() {
           }
         />
         <Route path="/domains" element={<DomainPage />} />
-        <Route path="/domains/:domainId/:level" element={<TitlePage />} />
+        <Route path="/domains/:title/:domainId" element={<TitlePage />} />
         <Route
           path="/domains/:domainId/:level/:topicId"
           element={<ProjectPage />}

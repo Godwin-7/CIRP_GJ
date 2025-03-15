@@ -28,11 +28,7 @@ const DomainPage = () => {
   const handleDomainClick = (domainId) => {
     const domain = Domains.find((d) => d._id === domainId);
     if (domain) {
-      if (selectedLevel) {
-        navigate(`/domains/${domain.title.toLowerCase()}/${selectedLevel}`);
-      } else {
-        navigate(`/domains/${domain.title.toLowerCase()}/all`);
-      }
+      navigate(`/domains/${domain.title.toLowerCase()}/${domainId}`);
     }
   };
 

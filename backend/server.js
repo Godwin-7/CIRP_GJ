@@ -110,6 +110,19 @@ app.post("/addidea", upload.single("content"), async (req, res) => {
   }
 });
 
+app.get('/domains/:domainId',async(req,res)=>{
+
+  try{
+     const data = await Domain.findById(req.params.domainId);
+     res.status(200).json(data);
+  }catch(err)
+  {
+         res.status(400).json(err);
+  }
+
+});
+
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
