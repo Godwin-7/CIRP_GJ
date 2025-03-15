@@ -1,11 +1,16 @@
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const TitlePage = () => {
   const { title, domainId } = useParams();
   const [domain, setDomain] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
+  const handleproject = (ideaId) => {
+    navigate(`/domains/${domainId}/ideas/${ideaId}`);
+  };
 
   useEffect(() => {
     setIsLoading(true);
@@ -83,7 +88,6 @@ const TitlePage = () => {
   return (
     <div className="min-h-screen w-full" style={{ backgroundColor: "#001f3f" }}>
       <div className="container mx-auto px-4 py-8">
-        {/* Header section */}
         <div className="bg-white shadow-md rounded-lg overflow-hidden mb-8 w-full">
           <div className="relative">
             {domain.imageurl ? (
@@ -130,7 +134,10 @@ const TitlePage = () => {
                   key={index}
                   className="px-6 py-5 hover:bg-gray-50 transition-colors cursor-pointer hover:bg-sky-300"
                 >
-                  <h3 className="text-lg md:text-xl font-medium text-gray-900">
+                  <h3
+                    className="text-lg md:text-xl font-medium text-gray-900"
+                    onClick={() => handleproject(idea._id)}
+                  >
                     {idea.topic}
                   </h3>
                   <p className="mt-2 text-gray-600">{idea.description}</p>

@@ -1,75 +1,59 @@
-import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import axios from "axios";
-import "./ProjectPage.css";
+import { useEffect, useState } from "react";
 
 const ProjectPage = () => {
-  const { topicId } = useParams();
-  const [topic, setTopic] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { domainId, ideaId } = useParams();
+  const [idea, setIdea] = useState(null);
 
   useEffect(() => {
-    axios
-      .get(`http://localhost:5000/api/topics/${topicId}`)
-      .then((response) => {
-        setTopic(response.data);
-        setLoading(false);
+    fetch(`http://localhost:5000/domains/${domainId}/ideas/${ideaId}`)
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Failed to fetch the data");
+        }
+        return res.json();
       })
-      .catch((error) => {
-        console.error("Error fetching topic details:", error);
-        setLoading(false);
+      .then((data) => {
+        setIdea(data);
+      })
+      .catch(() => {
+        console.error("Unable to fetch the data");
       });
-  }, [topicId]);
-
-  if (loading) return <div className="loading">Loading...</div>;
-  if (!topic) return <div className="error">Topic not found.</div>;
+  }, [domainId, ideaId]);
 
   return (
-    <div className="project-page">
-      {/* Project Header */}
-      <header className="project-header">
-        <h1>{topic.title}</h1>
-        <p className="project-subtitle">{topic.description}</p>
-      </header>
-
-      {/* Project Content */}
-      <div className="project-container">
-        {/* Left Side: Project Details */}
-        <div className="project-details">
-          <div className="content-box">
-            <h2>📖 Detailed Explanation</h2>
-            <p>{topic.content}</p>
-          </div>
-
-          <div className="published-papers content-box">
-            <h2>📑 Published Papers</h2>
-            <ul>
-              {topic.publishedPapers.map((paper, index) => (
-                <li key={index}>
-                  <strong>{paper.title}</strong> - {paper.date}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        {/* Right Side: Author Profile */}
-        <aside className="author-box">
-          <h2>👤 Author</h2>
-          <div className="author-info">
-            <div className="author-avatar">{topic.author.name.charAt(0)}</div>
-            <div className="author-text">
-              <h3>{topic.author.name}</h3>
-              <p>
-                Email:{" "}
-                <a href={`mailto:${topic.author.email}`}>
-                  {topic.author.email}
-                </a>
-              </p>
-              <p>Contact: {topic.author.contact}</p>
+    <div className="min-h-screen w-full bg-gray-900 text-white p-8">
+      <div className="container mx-auto bg-white text-gray-900 p-6 rounded-lg shadow-md">
+        <h1 className="text-3xl font-bold mb-4">
+          {idea?.topic || "Loading..."}
+        </h1>
+        <p className="text-lg mb-6">
+          {idea?.description || "No description available."}
+        </p>
+        <h2 className="text-2xl font-semibold mb-4">Document</h2>
+        {idea?.content ? (
+          <div className="border rounded-lg overflow-hidden shadow-md">
+            <iframe
+              src={`http://localhost:5000/uploads/${idea.content
+                .split("\\")
+                .pop()}#toolbar=0&view=FitH`}
+              className="w-full h-[400px]"
+            ></iframe>
+            <div className="p-4 bg-gray-200 text-center">
+              <a
+                href={`http://localhost:5000/uploads/${idea.content
+                  .split("\\")
+                  .pop()}`}
+                download
+                className="text-blue-600 font-semibold hover:underline"
+              >
+                Download Full Document
+              </a>
             </div>
           </div>
-        </aside>
+        ) : (
+          <p>No document available.</p>
+        )}
       </div>
     </div>
   );

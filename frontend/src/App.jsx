@@ -36,7 +36,7 @@ function App() {
         <Route path="/domains" element={<DomainPage />} />
         <Route path="/domains/:title/:domainId" element={<TitlePage />} />
         <Route
-          path="/domains/:domainId/:level/:topicId"
+          path="/domains/:domainId/ideas/:ideaId"
           element={<ProjectPage />}
         />
         <Route path="/domainform" element={<DomainAdder />} />

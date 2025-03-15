@@ -121,6 +121,22 @@ app.get('/domains/:domainId',async(req,res)=>{
   }
 
 });
+app.get('/domains/:domainId/ideas/:ideaId', async (req, res) => {
+  try {
+    const domain = await Domain.findById(req.params.domainId);
+    if (!domain) {
+      return res.status(404).json({ message: "Domain not found" });
+    }
+    const idea = domain.ideas.id(req.params.ideaId); 
+    if (!idea) {
+      return res.status(404).json({ message: "Idea not found" });
+    }
+    res.status(200).json(idea);
+  } catch (err) {
+    console.error("Error fetching idea:", err);
+    res.status(500).json({ message: "Server error", error: err });
+  }
+});
 
 
 app.listen(PORT, () => {
