@@ -2,12 +2,10 @@ const express = require("express");
 const mongoose = require("mongoose");
 const Domain = require("./models/Domain");
 const cors = require("cors");
-const domainRoutes = require("./routes/domainRoutes");
-const topicRoutes = require("./routes/topicRoutes");
 const fs = require("fs");
 const path = require("path");
 const multer = require("multer");
-
+const UserLog = require("./models/Login")
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -25,8 +23,7 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-app.use("/api/domains", domainRoutes);
-app.use("/api/topics", topicRoutes);
+
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 
@@ -138,6 +135,22 @@ app.get('/domains/:domainId/ideas/:ideaId', async (req, res) => {
   }
 });
 
+
+app.post('/register',async(req,res)=>{
+  const {username,email,password} = req.body;
+  const User = new UserLog({
+    username,
+    email,
+    password,
+  }) 
+   try{
+        const logon = await User.save();
+        res.status(200).json(logon);
+   }catch(err)
+   {
+    res.status(400).json(err);
+   }
+})
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

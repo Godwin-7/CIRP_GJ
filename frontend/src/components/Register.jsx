@@ -2,30 +2,38 @@ import { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-const Login = () => {
+const Register = () => {
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post("http://localhost:5000/login", {
+      await axios.post("http://localhost:5000/register", {
+        username,
         email,
         password,
       });
-      localStorage.setItem("token", res.data.token);
-      alert("Login Successful!");
-      navigate("/");
+      alert("Registration Successful! Please log in.");
+      navigate("/login");
     } catch (error) {
-      alert("Invalid credentials");
+      alert("Error registering. Try again.");
     }
   };
 
   return (
     <div>
-      <h2>Login</h2>
-      <form onSubmit={handleLogin}>
+      <h2>Register</h2>
+      <form onSubmit={handleRegister}>
+        <input
+          type="text"
+          placeholder="Username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          required
+        />
         <input
           type="email"
           placeholder="Email"
@@ -40,13 +48,10 @@ const Login = () => {
           onChange={(e) => setPassword(e.target.value)}
           required
         />
-        <button type="submit">Login</button>
+        <button type="submit">Register</button>
       </form>
-      <h2>
-        New User? register <a href="/register">here</a>
-      </h2>
     </div>
   );
 };
 
-export default Login;
+export default Register;

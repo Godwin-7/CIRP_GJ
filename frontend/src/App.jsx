@@ -13,6 +13,8 @@ import TitlePage from "./components/Pages/TitlePage/TitlePage";
 import ProjectPage from "./components/Pages/ProjectPage/ProjectPage";
 import DomainAdder from "./components/Pages/DomainPage/DomainAdder";
 import UserForm from "./components/Pages/UserForm/UserForm";
+import Login from "./components/Login";
+import Register from "./components/Register";
 
 function App() {
   return (
@@ -41,6 +43,8 @@ function App() {
         />
         <Route path="/domainform" element={<DomainAdder />} />
         <Route path="/addidea" element={<UserForm />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
       </Routes>
     </Router>
   );
