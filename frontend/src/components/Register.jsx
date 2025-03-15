@@ -11,14 +11,21 @@ const Register = () => {
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://localhost:5000/register", {
+      const res = await axios.post("http://localhost:5000/register", {
         username,
         email,
         password,
       });
-      alert("Registration Successful! Please log in.");
-      navigate("/login");
+
+      console.log("Server response:", res.data);
+      localStorage.setItem("token", res.data.token);
+      alert("Registration Successful!");
+      navigate("/");
     } catch (error) {
+      console.error(
+        "Registration error:",
+        error.response?.data || error.message
+      );
       alert("Error registering. Try again.");
     }
   };

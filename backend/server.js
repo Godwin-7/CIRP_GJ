@@ -8,6 +8,9 @@ const multer = require("multer");
 const UserLog = require("./models/Login")
 const app = express();
 const PORT = process.env.PORT || 5000;
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
+const SECRET_KEY = process.env.SECRET_KEY||'sdwucwecuweuwcu'
 
 mongoose.connect('mongodb+srv://csundar993:S1RjXYDtC73UGJCE@cluster2.3g8fa.mongodb.net/cirp', {
   useNewUrlParser: true,
@@ -136,21 +139,42 @@ app.get('/domains/:domainId/ideas/:ideaId', async (req, res) => {
 });
 
 
-app.post('/register',async(req,res)=>{
-  const {username,email,password} = req.body;
+app.post('/register', async (req, res) => {
+  const { username, email, password } = req.body;
   const User = new UserLog({
     username,
     email,
     password,
-  }) 
-   try{
-        const logon = await User.save();
-        res.status(200).json(logon);
-   }catch(err)
-   {
-    res.status(400).json(err);
-   }
-})
+  });
+
+  try {
+    const logon = await User.save();
+    const token = jwt.sign({ id: logon._id, isAdmin: logon.isAdmin }, SECRET_KEY, { expiresIn: "1h" });
+
+    res.status(200).json({ user: logon, token });  
+  } catch (err) {
+    console.error("Registration error:", err);
+    res.status(400).json({ error: "Error registering user", message: err.message });
+  }
+});
+
+app.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const user = await UserLog.findOne({ email });
+    if (!user) return res.status(400).json({ error: "User not found" });
+
+    if (user.password !== password) {
+      return res.status(400).json({ error: "Invalid credentials" });
+    }
+
+    const token = jwt.sign({ id: user._id }, SECRET_KEY, { expiresIn: "1h" });
+
+    res.status(200).json({ message: "Login successful", token });
+  } catch (err) {
+    res.status(500).json({ error: "Login failed", message: err.message });
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
