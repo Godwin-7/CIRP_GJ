@@ -13,7 +13,7 @@ const domainSchema = new mongoose.Schema({
         {
             topic: { type: String, required: true },
             description: { type: String, required: true },
-            content: { type: String, required: true }, // Store PDF file path
+            content: { type: String, required: true }, 
             submittedAt: { type: Date, default: Date.now },
         }]
 });

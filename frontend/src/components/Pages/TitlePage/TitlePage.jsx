@@ -2,6 +2,7 @@ import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./TitlePage.css"; // Import the CSS file
+import Chat from "../ChatPage/Chat";
 
 const TitlePage = () => {
   const { domainId } = useParams();
@@ -101,6 +102,10 @@ const TitlePage = () => {
         <h2 className="add-idea-title">Have an Idea?</h2>
         <p>Click here to share your innovative concept!</p>
         <button className="add-idea-button">Add Your Idea</button>
+      </div>
+
+      <div className="">
+        <Chat />
       </div>
     </div>
   );

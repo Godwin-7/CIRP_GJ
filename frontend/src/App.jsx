@@ -15,7 +15,9 @@ import DomainAdder from "./components/Pages/DomainPage/DomainAdder";
 import UserForm from "./components/Pages/UserForm/UserForm";
 import Login from "./components/Login";
 import Register from "./components/Register";
-
+import Chat from "./components/Pages/ChatPage/Chat";
+import Chatbot from "./components/Pages/HomePage/Chatbot/Chatbot";
+import ChatbotPage from "./components/Pages/HomePage/Chatbot/ChatbotPage";
 function App() {
   return (
     <Router>
@@ -31,6 +33,7 @@ function App() {
               <TextShpere />
               <ContactForm />
               <DevelopersSection />
+              <Chatbot />
               <Footer />
             </>
           }
@@ -45,6 +48,8 @@ function App() {
         <Route path="/addidea" element={<UserForm />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/chat" element={<Chat />} />
+        <Route path="/chatbot" element={<ChatbotPage />} />
       </Routes>
     </Router>
   );

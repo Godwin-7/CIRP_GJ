@@ -1,16 +1,42 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const Domain = require("./models/Domain");
+const UserLog = require("./models/Login");
+const Message = require("./models/Message");  // Import the chat schema
 const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
-const multer = require("multer");
-const UserLog = require("./models/Login")
 const app = express();
+const multer = require("multer");
+const jwt = require("jsonwebtoken");
+const dotenv = require("dotenv");
+const { createServer } = require("http");
+const { Server } = require("socket.io");
+
+const JWT_SECRET_KEY = "deuqwncqwufqurfu"
+
+dotenv.config();
+app.use(cors());
+const corsOptions = {
+  origin: ['http://localhost:5174'],  // Add your frontend URL here
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+};
+
+app.use(cors(corsOptions));
+
+const SECRET_KEY = process.env.SECRET_KEY || 'sdwucwecuweuwcu';
+const server = require("http").createServer(app);
+const io = require("socket.io")(server, {
+  cors: {
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST"],
+    credentials: true
+  }
+});
+
 const PORT = process.env.PORT || 5000;
-const jwt = require('jsonwebtoken');
-require('dotenv').config();
-const SECRET_KEY = process.env.SECRET_KEY||'sdwucwecuweuwcu'
 
 mongoose.connect('mongodb+srv://csundar993:S1RjXYDtC73UGJCE@cluster2.3g8fa.mongodb.net/cirp', {
   useNewUrlParser: true,
@@ -20,15 +46,12 @@ mongoose.connect('mongodb+srv://csundar993:S1RjXYDtC73UGJCE@cluster2.3g8fa.mongo
 app.use(cors());
 app.use(express.json());
 
-
 const uploadDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-
 
 
 const storage = multer.diskStorage({
@@ -37,6 +60,32 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage });
+
+// 🔥 SOCKET.IO FOR GLOBAL CHAT 🔥
+io.on("connection", (socket) => {
+  console.log("User connected:", socket.id);
+
+  // Send previous messages on connect
+  socket.on("getMessages", async () => {
+    const messages = await Message.find().sort({ timestamp: 1 });
+    socket.emit("chatHistory", messages);
+  });
+
+  // Handle new message
+  socket.on("sendMessage", async ({ username, email, message }) => {
+    const newMessage = new Message({ username, email, message });
+    await newMessage.save();
+    
+    // Broadcast the message to all clients
+    io.emit("receiveMessage", newMessage);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+  });
+});
+
+
 
 app.post('/domainform', upload.single('image'), async (req, res) => {
   const { title, description, topics } = req.body;
@@ -78,9 +127,6 @@ app.use("/uploads", express.static("uploads"));
 
 app.post("/addidea", upload.single("content"), async (req, res) => {
   try {
-    console.log("Request Body:", req.body);
-    console.log("Uploaded File:", req.file);
-
     const { domainId, topic, description } = req.body;
     if (!domainId || !topic || !description) {
       return res.status(400).json({ message: "All fields are required" });
@@ -110,17 +156,15 @@ app.post("/addidea", upload.single("content"), async (req, res) => {
   }
 });
 
-app.get('/domains/:domainId',async(req,res)=>{
-
-  try{
-     const data = await Domain.findById(req.params.domainId);
-     res.status(200).json(data);
-  }catch(err)
-  {
-         res.status(400).json(err);
+app.get('/domains/:domainId', async (req, res) => {
+  try {
+    const data = await Domain.findById(req.params.domainId);
+    res.status(200).json(data);
+  } catch (err) {
+    res.status(400).json(err);
   }
-
 });
+
 app.get('/domains/:domainId/ideas/:ideaId', async (req, res) => {
   try {
     const domain = await Domain.findById(req.params.domainId);
@@ -160,19 +204,31 @@ app.post('/register', async (req, res) => {
 
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
+  
   try {
     const user = await UserLog.findOne({ email });
     if (!user) return res.status(400).json({ error: "User not found" });
-
+    
+    // Direct password comparison (plain text)
     if (user.password !== password) {
       return res.status(400).json({ error: "Invalid credentials" });
     }
 
-    const token = jwt.sign({ id: user._id }, SECRET_KEY, { expiresIn: "1h" });
+    const token = jwt.sign({ userId: user._id },JWT_SECRET_KEY, {
+      expiresIn: "1h",
+    });
 
-    res.status(200).json({ message: "Login successful", token });
-  } catch (err) {
-    res.status(500).json({ error: "Login failed", message: err.message });
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        username: user.username, 
+        email: user.email,
+      },
+    });
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({ error: "Server error" });
   }
 });
 
@@ -208,6 +264,6 @@ app.get('/api/domains/:domainId/topics', async (req, res) => {
 });
 
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });

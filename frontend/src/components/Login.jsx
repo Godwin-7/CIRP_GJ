@@ -15,12 +15,20 @@ const Login = () => {
         email,
         password,
       });
+
+      console.log("Server response:", res.data);
+
+      // Store the token, username, and email in localStorage
       setToken(res.data.token);
       localStorage.setItem("token", res.data.token);
-      alert("Login Successful!");
+      localStorage.setItem("username", res.data.user.username); // Store username
+      localStorage.setItem("email", res.data.user.email); // Store email
+
+      alert(`Welcome, ${res.data.user.username}! 🎉`);
       navigate("/");
     } catch (error) {
       alert("Invalid credentials");
+      console.error("Login error:", error.response?.data || error.message);
     }
   };
 

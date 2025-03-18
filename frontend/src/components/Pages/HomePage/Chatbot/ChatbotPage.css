@@ -1,0 +1,234 @@
+.chatbot-page {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background-color: #001f3f; /* Dark blue background */
+    font-family: 'Poppins', sans-serif;
+    color: #e7eaee;
+  }
+  
+  .welcome-banner {
+    background-color: #0d2d50; /* Darker blue */
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.5);
+  }
+  
+  .title-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .welcome-text {
+    font-size: 1.5rem;
+    color: #e7eaee;
+  }
+  
+  .main-title {
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: #cc1e4a; /* Red accent color */
+  }
+  
+  .subtitle {
+    font-size: 1.2rem;
+    color: #e7eaee;
+  }
+  
+  .container-fluid {
+    display: flex;
+    flex: 1;
+  }
+  
+  .sidebar {
+    background-color: #0d2d50; /* Darker blue */
+    width: 25%;
+    color: #e7eaee;
+    padding: 20px;
+    overflow-y: auto;
+  }
+  
+  .sidebar h5 {
+    font-size: 2rem;
+    margin-bottom: 20px;
+    font-weight: 600;
+  }
+  
+  .conversation-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .chat-button {
+    background-color: #001f3f; /* Dark blue */
+    border: 2px solid #cc1e4a; /* Red accent color */
+    padding: 10px;
+    border-radius: 5px;
+    color: #e7eaee;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s ease;
+  }
+  
+  .chat-button:hover {
+    background-color: #cc1e4a; /* Red accent color */
+    transform: translateY(-2px);
+  }
+  
+  .chat-button.active-chat {
+    background-color: #cc1e4a; /* Red accent color */
+  }
+  
+  .icon-container {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .edit-icon, .delete-icon {
+    cursor: pointer;
+  }
+  
+  .edit-icon:hover {
+    color: #ffcc00; /* Yellow accent color */
+  }
+  
+  .delete-icon:hover {
+    color: #ff6b6b; /* Light red accent color */
+  }
+  
+  .new-chat-button {
+    background-color: #cc1e4a; /* Red accent color */
+    color: #e7eaee;
+    border: none;
+    padding: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 20px;
+    width: 100%;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+  }
+  
+  .new-chat-button:hover {
+    background-color: #e7eaee; /* Light background */
+    color: #cc1e4a; /* Red accent color */
+  }
+  
+  .chat-area {
+    width: 75%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 20px;
+    background-color: #001f3f; /* Dark blue background */
+  }
+  
+  .messages {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    background-color: #0d2d50; /* Darker blue */
+  }
+  
+  .message {
+    padding: 12px;
+    margin-bottom: 10px;
+    border-radius: 15px;
+    max-width: 65%;
+    word-wrap: break-word;
+    box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.5);
+  }
+  
+  .message.user {
+    background-color: #cc1e4a; /* Red accent color */
+    color: #e7eaee;
+    align-self: flex-end;
+  }
+  
+  .message.response {
+    background-color: #0d2d50; /* Darker blue */
+    color: #e7eaee;
+    align-self: flex-start;
+  }
+  
+  .input-group {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .input-group input {
+    flex-grow: 1;
+    padding: 10px;
+    border: 2px solid #cc1e4a; /* Red accent color */
+    border-radius: 5px;
+    background-color: #e7eaee; /* Light background */
+    color: #001f3f; /* Dark blue text */
+    font-size: 1rem;
+  }
+  
+  .input-group input:focus {
+    border-color: #ffcc00; /* Yellow accent color */
+    box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.5);
+  }
+  
+  .input-group button {
+    background-color: #cc1e4a; /* Red accent color */
+    color: #e7eaee;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+  }
+  
+  .input-group button:hover {
+    background-color: #e7eaee; /* Light background */
+    color: #cc1e4a; /* Red accent color */
+  }
+  
+  .modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #0d2d50; /* Darker blue */
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.5);
+    z-index: 10;
+  }
+  
+  .modal input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 2px solid #cc1e4a; /* Red accent color */
+    border-radius: 5px;
+    background-color: #e7eaee; /* Light background */
+    color: #001f3f; /* Dark blue text */
+  }
+  
+  .modal button {
+    padding: 10px;
+    background-color: #cc1e4a; /* Red accent color */
+    color: #e7eaee;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  
+  .modal button:hover {
+    background-color: #e7eaee; /* Light background */
+    color: #cc1e4a; /* Red accent color */
+  }
