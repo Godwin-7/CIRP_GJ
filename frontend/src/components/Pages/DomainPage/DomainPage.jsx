@@ -36,6 +36,10 @@ const DomainPage = () => {
     setSelectedLevel(level === selectedLevel ? null : level);
   };
 
+  const handleAddDomainClick = () => {
+    navigate("/domainform");
+  };
+
   useEffect(() => {
     getdomain();
   }, []);
@@ -107,6 +111,16 @@ const DomainPage = () => {
             <button className="click-button">Click Here</button>
           </div>
         ))}
+
+        {/* New Box for Domain Form Navigation */}
+        <div
+          className="domain-card add-domain-card"
+          onClick={handleAddDomainClick}
+        >
+          <h2 className="domain-title">Add New Domain</h2>
+          <p className="domain-description">Click here to add a new domain.</p>
+          <button className="click-button">Add Domain</button>
+        </div>
       </div>
     </div>
   );

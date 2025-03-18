@@ -176,6 +176,38 @@ app.post("/login", async (req, res) => {
   }
 });
 
+app.get('/api/domains/:domainId/topics', async (req, res) => {
+  try {
+    const { level } = req.query; 
+    const domain = await Domain.findById(req.params.domainId);
+
+    if (!domain) {
+      return res.status(404).json({ message: "Domain not found" });
+    }
+
+    let topics = [];
+    if (level === "easy") {
+      topics = domain.topics.easy;
+    } else if (level === "medium") {
+      topics = domain.topics.medium;
+    } else if (level === "hard") {
+      topics = domain.topics.hard;
+    } else {
+      topics = [
+        ...domain.topics.easy.map((t) => ({ level: "easy", ...t })),
+        ...domain.topics.medium.map((t) => ({ level: "medium", ...t })),
+        ...domain.topics.hard.map((t) => ({ level: "hard", ...t })),
+      ];
+    }
+
+    res.status(200).json(topics);
+  } catch (error) {
+    console.error("Error fetching topics:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });

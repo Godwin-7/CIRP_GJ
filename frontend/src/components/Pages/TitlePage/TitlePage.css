@@ -1,10 +1,9 @@
 /* Import Poppins font */
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;900&display=swap");
 
-/* Page Styles */
 .title-page {
   padding: 50px 20px;
-  background-color: #001f3f; /* Dark blue background */
+  background-color: #001f3f;
   min-height: 100vh;
   font-family: "Poppins", sans-serif;
   color: #e7eaee;
@@ -30,6 +29,55 @@
   color: #ffcc00;
 }
 
+/* Domain Header */
+.domain-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 40px;
+}
+
+.domain-image-container {
+  position: relative;
+  width: 100%;
+  max-height: 400px;
+  overflow: hidden;
+}
+
+.domain-image {
+  width: 100%;
+  height: 400px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.domain-placeholder {
+  width: 100%;
+  height: 400px;
+  background: linear-gradient(to right, #ccc, #ddd);
+}
+
+.domain-overlay {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  text-align: center;
+}
+
+.domain-title {
+  font-size: 3rem;
+  font-weight: 900;
+}
+
+.domain-description {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 1.2rem;
+}
+
 /* Topics Container */
 .topics-container {
   display: flex;
@@ -51,7 +99,6 @@
   text-align: center;
   color: #001f3f;
   cursor: pointer;
-  overflow: visible;
   transition: all 0.3s ease;
 }
 
@@ -62,50 +109,99 @@
   color: #e7eaee;
 }
 
-.topic-content {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-}
-
 .topic-title {
   font-size: 2rem;
   font-weight: 900;
-  margin-bottom: 10px;
-  transition: opacity 0.3s ease;
-}
-
-.topic-card:hover .topic-title {
-  opacity: 0; /* Hide title on hover */
 }
 
 .topic-description {
   font-size: 1rem;
-  transition: opacity 0.3s ease;
 }
 
-.topic-card:hover .topic-description {
-  opacity: 0; /* Hide description on hover */
-}
-
-/* Hover Effect */
-.topic-card:hover::after {
-  content: "Click to Explore";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 1.5rem;
-  font-weight: 600;
+/* Add Project Card */
+.add-project-card {
+  background-color: #cc1e4a;
   color: #e7eaee;
+  border: 4px solid #e7eaee;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-/* Loading & Error Messages */
-.loading, .error {
+.add-project-card:hover {
+  background-color: #e7eaee;
+  color: #cc1e4a;
+  border: 4px solid #cc1e4a;
+}
+
+/* Loading & Error Styles */
+.loading-container {
+  text-align: center;
+  color: #ffcc00;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid #f3f3f3;
+  border-radius: 50%;
+  border-top: 5px solid #3498db;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error-message {
+  color: #ff6b6b;
   text-align: center;
   font-size: 1.5rem;
-  margin-top: 2rem;
-  color: #ffcc00;
+}
+
+
+/* Style for Add Idea Navigation Box */
+.add-idea-card {
+  margin: 30px auto;
+  padding: 30px;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  max-width: 600px;
+  cursor: pointer;
+}
+
+.add-idea-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.add-idea-title {
+  font-size: 1.8rem;
+  color: #007bff;
+  margin-bottom: 10px;
+}
+
+.add-idea-card p {
+  font-size: 1rem;
+  color: #555;
+  margin-bottom: 20px;
+}
+
+.add-idea-button {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 10px 25px;
+  font-size: 1rem;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.add-idea-button:hover {
+  background-color: #218838;
 }
