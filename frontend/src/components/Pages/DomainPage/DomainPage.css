@@ -27,7 +27,7 @@
 
 .level-filter {
   padding: 10px 20px;
-  font-size: 1rem;
+  font-size: 1.3rem;
   font-weight: 600;
   border: 2px solid #cc1e4a;
   border-radius: 5px;
@@ -35,6 +35,8 @@
   color: #e7eaee;
   cursor: pointer;
   transition: all 0.3s ease;
+  width: auto; /* Ensure buttons only take up necessary width */
+  min-width: 250px; /* Set a minimum width for consistency */
 }
 
 .level-filter.active,
@@ -78,7 +80,7 @@
 .top-image {
   width: 160px;
   height: 160px;
-  margin: -20px auto 30px; /* Changed from "0 auto 20px" to "-20px auto 30px" */
+  margin: -20px auto 30px;
   background-color: purple;
   border-radius: 10px;
   display: flex;
@@ -87,33 +89,32 @@
 }
 
 .top-image img {
-  width: 80px;
+  width: 160px;
   height: auto;
 }
 
 .domain-title {
-  font-size: 20px;
-  font-weight: 300;
-  margin-top: 120px; /* Adjusted to reference from the bottom of the image */
-  transition: transform 0.3s ease; /* Add transition for hover effect */
-  margin-bottom: 15px ;
+  font-size: 2rem;
+  font-weight: 900;
+  margin-top: 120px;
+  transition: transform 0.3s ease;
+  margin-bottom: 15px;
 }
 
 .domain-card:hover .domain-title {
   opacity: 0; /* Hide default title on hover */
-  /*transform: translateY(-30px); /* Move title upward */
 }
 
 .domain-description {
   font-size: 1rem;
   margin-bottom: 20px;
   transition: opacity 0.3s ease;
-  text-align: center; /* Center-align the text */
-  margin-top: 10px; /* Adjust this value to move it up or down */
-  padding: 0 20px; /* Add padding to prevent text from touching the edges */
-  width: 100%; /* Ensure the description spans the full width */
-  box-sizing: border-box; /* Include padding in the width calculation */
-  display: block; /* Ensure it behaves as a block element */
+  text-align: center;
+  margin-top: 10px;
+  padding: 0 20px;
+  width: 100%;
+  box-sizing: border-box;
+  display: block;
   margin-left: 0px;
 }
 
@@ -131,12 +132,12 @@
   background-color: rgba(0, 0, 0, 0.8);
   display: flex;
   flex-direction: column;
-  justify-content: flex-start; /* Changed from center to flex-start */
+  justify-content: flex-start;
   align-items: center;
   opacity: 0;
   transition: opacity 0.3s ease;
-  padding-top: 20px; /* Added padding to move content up */
-  border-radius: 20px; /* Added to match the card's border radius */
+  padding-top: 20px;
+  border-radius: 20px;
 }
 
 .domain-card:hover .hover-content {
@@ -146,12 +147,12 @@
 .hover-domain-title {
   font-size: 2rem;
   font-weight: 900;
-  margin-bottom: 3px; /* Reduced margin to move content up */
+  margin-bottom: 3px;
   color: #e7eaee;
 }
 
 .hover-topics {
-  margin-bottom: 1px; /* Reduced margin to move content up */
+  margin-bottom: 1px;
 }
 
 .hover-topics p {
@@ -162,7 +163,7 @@
 .hover-levels {
   display: flex;
   gap: 10px;
-  margin-top: 10px; /* Reduced margin to fit within card */
+  margin-top: 10px;
 }
 
 .hover-levels button {
@@ -182,6 +183,7 @@
 }
 
 /* Click Here Button */
+/* Click Here Button - Change from full width to centered with specific width */
 .click-button {
   position: absolute;
   bottom: 20px;
@@ -196,6 +198,9 @@
   color: #e7eaee;
   cursor: pointer;
   transition: all 0.3s ease;
+  width: auto; /* Change from default (which stretches) to auto */
+  min-width: 120px; /* Add a minimum width to ensure button isn't too small */
+  max-width: 60%; /* Limit width to approximately 60% of the card */
 }
 
 .domain-card:hover .click-button {
@@ -204,21 +209,20 @@
   bottom: 10px; /* Move the button down during hover */
 }
 
-
-/* Style for the Add Domain card */
+/* Add Domain Card Styles */
 .add-domain-card {
-  background-color: #f0f0f0; 
+  background-color: #f0f0f0;
+  border: 3px dashed #cc1e4a; /* Changed to dashed border for better visual */
   color: #333;
   cursor: pointer;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  overflow: hidden; /* Contain effects within card */
 }
-
 
 .add-domain-card .top-image {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 180px;
+  height: 160px;
   background-color: #e0e0e0;
 }
 
@@ -229,30 +233,50 @@
 }
 
 .add-domain-card .domain-title {
-  font-size: 1.5rem;
+  font-size: 2rem;
   color: #007bff;
   margin: 15px 0 10px;
-  text-align: center;
+  margin-top: 100px; /* Added to move text down */
 }
 
 .add-domain-card .domain-description {
   font-size: 1rem;
   color: #555;
-  text-align: center;
-  margin-bottom: 15px;
+  transition: all 0.3s ease; /* Add transition for smoother effect */
+}
+
+.add-domain-card:hover {
+  background-color: #cc1e4a;
+  transform: translateY(-10px) scale(1.02); /* Add slight scaling effect */
+  box-shadow: 0 15px 25px rgba(0, 0, 0, 0.3); /* Improved shadow */
+}
+
+.add-domain-card:hover .domain-title,
+.add-domain-card:hover .domain-description {
+  opacity: 1; /* Changed from 0 to keep text visible */
+  color: white; /* Change text color on hover */
+  transform: translateY(20px); /* Add slight movement effect */
+  font-weight: 600; /* Make text bolder on hover */
+}
+
+.add-domain-card:hover::after {
+  content: "+";
+  position: absolute;
+  top: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 5rem;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .add-domain-card .click-button {
   background-color: #28a745;
   color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 5px;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background 0.3s ease;
+  font-weight: bold;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-.add-domain-card .click-button:hover {
-  background-color: #218838;
+.add-domain-card:hover .click-button {
+  background-color: #e7eaee;
+  color: #cc1e4a;
 }

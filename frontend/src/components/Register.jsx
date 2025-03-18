@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import "./Register.css";
 
 const Register = () => {
   const [username, setUsername] = useState("");
@@ -31,22 +32,14 @@ const Register = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 to-gray-500 p-4">
-      <div className="w-full max-w-lg p-10 space-y-10 bg-white rounded-xl shadow-lg">
-        <h2 className="text-4xl font-bold text-center text-gray-800">
-          Register
-        </h2>
-        <form className="mt-10 space-y-8" onSubmit={handleRegister}>
-          <div className="space-y-2">
-            <label
-              htmlFor="username"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Username
-            </label>
+    <div className="register-page">
+      <div className="register-container">
+        <h2>Register</h2>
+        <form onSubmit={handleRegister}>
+          <div className="form-group">
+            <label htmlFor="username">Username</label>
             <input
               id="username"
-              className="w-full px-5 py-3 text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
               type="text"
               placeholder="Enter your username"
               value={username}
@@ -54,16 +47,10 @@ const Register = () => {
               required
             />
           </div>
-          <div className="space-y-2">
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Email Address
-            </label>
+          <div className="form-group">
+            <label htmlFor="email">Email Address</label>
             <input
               id="email"
-              className="w-full px-5 py-3 text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
               type="email"
               placeholder="Enter your email"
               value={email}
@@ -71,16 +58,10 @@ const Register = () => {
               required
             />
           </div>
-          <div className="space-y-2">
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Password
-            </label>
+          <div className="form-group">
+            <label htmlFor="password">Password</label>
             <input
               id="password"
-              className="w-full px-5 py-3 text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
               type="password"
               placeholder="Enter your password"
               value={password}
@@ -88,21 +69,13 @@ const Register = () => {
               required
             />
           </div>
-          <div className="pt-4">
-            <button
-              className="w-full px-5 py-4 font-medium text-white bg-blue-600 rounded-lg text-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
-              type="submit"
-            >
-              Register
-            </button>
-          </div>
+          <button className="btn-register" type="submit">
+            Register
+          </button>
         </form>
-        <p className="mt-8 text-center text-lg text-gray-600">
+        <p className="toggle-form">
           Already have an account?{" "}
-          <a
-            href="/login"
-            className="font-medium text-blue-600 hover:text-blue-500 underline"
-          >
+          <a href="/login">
             Login here
           </a>
         </p>

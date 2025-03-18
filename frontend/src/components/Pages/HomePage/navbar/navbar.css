@@ -156,6 +156,11 @@
       background-color: #4CAF50; /* Same color theme as active6 */
       color: #E7EAEE;
     }
+
+    .openPage a:nth-child(7):hover {
+      background-color: #3F51B5; /* Same color theme as active7 */
+      color: #E7EAEE;
+    }
   }
   
   #active {
@@ -183,6 +188,14 @@
   #active6 {
     border-bottom: 4px solid #4CAF50; /* Choose a distinctive color for AboutUs */
   }
+
+  /* Add this style for the active Chatbot link */
+#active7 {
+  border-bottom: 4px solid #3F51B5; /* Choose a distinctive color for Chatbot */
+  color: #013F59;
+}
+
+
   
   #blue {
     color: #013F59;
@@ -203,6 +216,67 @@
     transition: 0.3s ease-in-out;
   }
   
+/* Auth buttons styling */
+.auth-buttons {
+  margin-left: 20px;
+  display: flex;
+  align-items: center;
+}
+
+.auth-btn {
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 0.9rem;
+  letter-spacing: 0.5px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.login-btn {
+  background-color: #2B77B5;
+  color: #E7EAEE;
+}
+
+.login-btn:hover {
+  background-color: #1e5a8a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.logout-btn {
+  background-color: #F75469;
+  color: #E7EAEE;
+}
+
+.logout-btn:hover {
+  background-color: #e63c51;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Media query for mobile responsiveness */
+@media screen and (max-width: 768px) {
+  .auth-buttons {
+    position: absolute;
+    top: 10px;
+    right: 60px;
+  }
+  
+  .auth-btn {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
+}
+
+
+
   /*section {
     height: 100vh;
     width: 100%;

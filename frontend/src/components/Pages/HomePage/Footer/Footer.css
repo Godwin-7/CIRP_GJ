@@ -1,167 +1,292 @@
-footer {
-    width: 100%;
-    height: 30vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-around;
-    align-items: center;
-    background: #013F59;
+.footer-container {
+  width: 100%;
+  background: linear-gradient(135deg, #013F59 0%, #01293A 100%);
+  color: #E7EAEE;
+  padding: 3rem 0 1rem 0;
+  margin-top: 2rem;
+  box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2.5rem;
+  padding: 0 2rem;
+}
+
+.footer-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.footer-logo {
+  width: 120px;
+  height: 40px;
+  margin-bottom: 1rem;
+}
+
+.footer-tagline {
+  font-size: 1rem;
+  color: #FFC906;
+  font-weight: 600;
+  margin-bottom: 0.8rem;
+}
+
+.footer-description {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #E7EAEE;
+  opacity: 0.9;
+  margin: 0;
+}
+
+.footer-section h3 {
+  font-size: 1.2rem;
+  margin-bottom: 1.5rem;
+  margin-top: 0;
+  position: relative;
+  padding-bottom: 0.8rem;
+  width: 100%;
+}
+
+.footer-section:nth-child(1) h3::after {
+  background-color: #4ECDC4;
+}
+
+.footer-section:nth-child(2) h3::after {
+  background-color: #FFC906;
+}
+
+.footer-section:nth-child(3) h3::after {
+  background-color: #F75469;
+}
+
+.footer-section:nth-child(4) h3::after {
+  background-color: #4ECDC4;
+}
+
+.footer-section h3::after {
+  content: "";
+  display: block;
+  width: 50px;
+  height: 3px;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+}
+
+.contact-info {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.contact-item svg {
+  min-width: 16px;
+}
+
+.contact-item span {
+  font-size: 0.9rem;
+  color: #E7EAEE;
+}
+
+.footer-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+}
+
+.footer-links li {
+  margin-bottom: 0.8rem;
+  position: relative;
+  padding-left: 0;
+}
+
+.footer-links a {
+  color: #E7EAEE;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  display: block;
+  padding: 0.2rem 0;
+}
+
+.footer-links a:hover {
+  color: #FFC906;
+  transform: translateX(5px);
+}
+
+.newsletter-text {
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  color: #E7EAEE;
+  opacity: 0.9;
+}
+
+.newsletter-form {
+  display: flex;
+  width: 100%;
+  margin-bottom: 1.5rem;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.newsletter-form input {
+  padding: 0.7rem 1rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  outline: none;
+  background-color: rgba(255, 255, 255, 0.9);
+  width: 100%;
+  color: #333;
+}
+
+.newsletter-form input::placeholder {
+  color: #999;
+  opacity: 1;
+}
+
+.newsletter-form button {
+  background-color: #FFC906;
+  color: #013F59;
+  border: none;
+  padding: 0.7rem 1rem;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  position: relative;
+  overflow: hidden;
+  width: auto;
+  align-self: center;
+  margin-top: 0.5rem;
+}
+
+.newsletter-form button:hover {
+  background-color: #e6b800;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.newsletter-form button:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Add a subtle animation effect */
+.newsletter-form button::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: 0.5s;
+}
+
+.newsletter-form button:hover::after {
+  left: 100%;
+}
+
+.social-icons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.social-icons a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: rgba(231, 234, 238, 0.1);
+  transition: all 0.3s ease;
+}
+
+.social-icons a:hover {
+  background-color: #FFC906;
+  transform: translateY(-3px);
+}
+
+.social-icons a:hover svg {
+  stroke: #013F59;
+}
+
+.footer-bottom {
+  max-width: 1200px;
+  margin: 2.5rem auto 0;
+  padding: 1.5rem 2rem 0;
+  border-top: 1px solid rgba(231, 234, 238, 0.2);
+}
+
+.copyright {
+  text-align: center;
+  font-size: 0.8rem;
+  color: rgba(231, 234, 238, 0.7);
+}
+
+.copyright p {
+  margin: 0.3rem 0;
+}
+
+@media screen and (max-width: 768px) {
+  .footer-content {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
   }
-  
-  .footerup {
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-  
-  .footerdown {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  .logoleft {
-    width: 50%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  .logoleft span {
-    font-size: 0.8rem;
-    color: #E7EAEE;
-    font-weight: bold;
-  }
-  
-  .flogo {
-    width: 50px;
-    border: 4px solid #E7EAEE;
-    padding: 10px;
-    margin: 10px;
-  }
-  
-  .finfo {
-    width: 25%;
-    color: #E7EAEE;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    /* align-items: center; */
-    text-align: left;
-  }
-  
-  .finfo h3 {
-    font-size: 1rem;
-  }
-  
-  .finfo h3:after {
-    content: "";
-    /* This is necessary for the pseudo element to work. */
-    display: block;
-    /* This will put the pseudo element on its own line. */
-    margin: 0;
-    /* This will center the border. */
-    width: 30%;
-    /* Change this to whatever width you want. */
-    padding-top: 2px;
-    /* This creates some space between the element and the border. */
-    border-bottom: 3px solid #FFC906;
-  }
-  
-  .reach-us {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    text-align: left;
-  }
-  
-  .reach-us p {
-    font-size: 0.5rem;
-    padding: 5px;
-  }
-  
-  .reach-us img {
-    vertical-align: text-bottom;
-  }
-  
-  .quicklinks {
-    width: 25%;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    align-items: center;
-  }
-  
-  .quicklinks li {
-    text-decoration: none;
-    color: #E7EAEE;
-    font-size: 0.7rem;
-    list-style: none;
-    text-align: left;
-  }
-  
-  .quicklinks h3 {
-    font-size: 1rem;
-    margin-bottom: 2px;
-  }
-  
-  .quicklinks h3:after {
-    content: "";
-    /* This is necessary for the pseudo element to work. */
-    display: block;
-    /* This will put the pseudo element on its own line. */
-    margin: 0;
-    /* This will center the border. */
-    width: 100%;
-    /* Change this to whatever width you want. */
-    padding-top: 2px;
-    /* This creates some space between the element and the border. */
-    border-bottom: 3px solid #F75469;
-  }
-  
-  .footerdown {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+
+  .footer-section {
     align-items: center;
     text-align: center;
-    color: #E7EAEE;
-    font-size: 0.7rem;
   }
   
-  @media screen and (max-width:768px) {
-    .logoleft {
-      display: none;
-    }
-  
-    .finfo {
-      width: 60%;
-      padding-left: 5%;
-    }
-  
-    .finfo h3 {
-      font-size: 1rem;
-    }
-  
-    .finfo p {
-      font-size: 0.7rem;
-    }
-  
-    .quicklinks {
-      width: 40%;
-    }
-  
-    .quicklinks h3 {
-      font-size: 1rem;
-    }
-  
-    .quicklinks li {
-      font-size: 0.7rem;
-    }
+  .footer-section h3 {
+    text-align: center;
   }
   
+  .footer-section h3::after {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  
+  .contact-info {
+    align-items: center;
+  }
+  
+  .footer-links {
+    text-align: center;
+  }
+  
+  .footer-links a:hover {
+    transform: none;
+  }
+  
+  .newsletter-text {
+    text-align: center;
+  }
+  
+  .newsletter-form button {
+    align-self: center;
+  }
+  
+  .social-icons {
+    justify-content: center;
+  }
+}

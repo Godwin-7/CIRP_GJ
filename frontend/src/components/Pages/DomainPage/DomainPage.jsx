@@ -84,27 +84,36 @@ const DomainPage = () => {
                 alt={domain.title}
               />
             </div>
-
             <h2 className="domain-title">{domain.title}</h2>
             <p className="domain-description">{domain.description}</p>
 
-            <div className="domain-topics">
-              {selectedLevel ? (
-                domain.topics[selectedLevel].map((topic, index) => (
-                  <p key={index}>{topic}</p>
-                ))
-              ) : (
-                <>
-                  {domain.topics.easy.slice(0, 2).map((topic, index) => (
-                    <p key={`easy-${index}`}>{topic}</p>
-                  ))}
-                  {domain.topics.medium.slice(0, 2).map((topic, index) => (
-                    <p key={`medium-${index}`}>{topic}</p>
-                  ))}
-                  {domain.topics.hard.slice(0, 2).map((topic, index) => (
-                    <p key={`hard-${index}`}>{topic}</p>
-                  ))}
-                </>
+            <div className="hover-content">
+              <h2 className="hover-domain-title">{domain.title}</h2>
+              <div className="hover-topics">
+                {selectedLevel ? (
+                  domain.topics[selectedLevel].map((topic, index) => (
+                    <p key={index}>{topic}</p>
+                  ))
+                ) : (
+                  <>
+                    {domain.topics.easy.slice(0, 2).map((topic, index) => (
+                      <p key={`easy-${index}`}>{topic}</p>
+                    ))}
+                    {domain.topics.medium.slice(0, 2).map((topic, index) => (
+                      <p key={`medium-${index}`}>{topic}</p>
+                    ))}
+                    {domain.topics.hard.slice(0, 2).map((topic, index) => (
+                      <p key={`hard-${index}`}>{topic}</p>
+                    ))}
+                  </>
+                )}
+              </div>
+              {!selectedLevel && (
+                <div className="hover-levels">
+                  <button onClick={(e) => { e.stopPropagation(); handleLevelClick(domain._id, "easy"); }}>Easy</button>
+                  <button onClick={(e) => { e.stopPropagation(); handleLevelClick(domain._id, "medium"); }}>Medium</button>
+                  <button onClick={(e) => { e.stopPropagation(); handleLevelClick(domain._id, "hard"); }}>Hard</button>
+                </div>
               )}
             </div>
 
@@ -112,13 +121,17 @@ const DomainPage = () => {
           </div>
         ))}
 
-        {/* New Box for Domain Form Navigation */}
+        {/* Add Domain Card */}
         <div
           className="domain-card add-domain-card"
           onClick={handleAddDomainClick}
         >
+          {/* Removed top-image div */}
+          {/*<div className="top-image">
+            <img src="/images/add-domain.png" alt="Add Domain" />
+          </div>*/}
           <h2 className="domain-title">Add New Domain</h2>
-          <p className="domain-description">Click here to add a new domain.</p>
+          <p className="domain-description">Click here to add a new domain</p>
           <button className="click-button">Add Domain</button>
         </div>
       </div>

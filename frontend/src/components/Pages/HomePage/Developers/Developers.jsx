@@ -46,8 +46,8 @@ const DevelopersSection = () => {
   const developers = [
     {
       name: "Godwin Wilfred",
-      title: "Web Developer",
-      image: "images/Vivek.png",
+      title: "UiUx & Backend Developer",
+      image: "images/godwin.png",
       email: "vivekshotti@gmail.com",
       socialLinks: [
         { url: "https://www.facebook.com/vivek.hotti.9/", iconPath: "M47.25 24C47.25 11.1562 36.8438 0.75 24 0.75C11.1562 0.75 0.75 11.1562 0.75 24C0.75 35.6044 9.25219 45.2231 20.3672 46.9688V30.7209H14.4609V24H20.3672V18.8775C20.3672 13.0509 23.8359 9.8325 29.1488 9.8325C31.6931 9.8325 34.3538 10.2863 34.3538 10.2863V16.005H31.4212C28.5338 16.005 27.6328 17.7975 27.6328 19.6359V24H34.0809L33.0497 30.7209H27.6328V46.9688C38.7478 45.2231 47.25 35.6044 47.25 24Z"},
@@ -60,7 +60,7 @@ const DevelopersSection = () => {
     {
       name: "Sathish S",
       title: "Backend Developer",
-      image: "images/Developer2.png",
+      image: "images/sathish.png",
       email: "developer2@example.com",
       socialLinks: [
         { url: "https://www.facebook.com/developer2", iconPath: "M47.25 24C47.25 11.1562 36.8438 0.75 24 0.75C11.1562 0.75 0.75 11.1562 0.75 24C0.75 35.6044 9.25219 45.2231 20.3672 46.9688V30.7209H14.4609V24H20.3672V18.8775C20.3672 13.0509 23.8359 9.8325 29.1488 9.8325C31.6931 9.8325 34.3538 10.2863 34.3538 10.2863V16.005H31.4212C28.5338 16.005 27.6328 17.7975 27.6328 19.6359V24H34.0809L33.0497 30.7209H27.6328V46.9688C38.7478 45.2231 47.25 35.6044 47.25 24Z"},
@@ -73,7 +73,7 @@ const DevelopersSection = () => {
     {
       name: "Sundar C",
       title: "Frontend Developer",
-      image: "images/Developer3.png",
+      image: "images/sundar.png",
       email: "developer3@example.com",
       socialLinks: [
         { url: "https://www.facebook.com/developer3", iconPath: "M47.25 24C47.25 11.1562 36.8438 0.75 24 0.75C11.1562 0.75 0.75 11.1562 0.75 24C0.75 35.6044 9.25219 45.2231 20.3672 46.9688V30.7209H14.4609V24H20.3672V18.8775C20.3672 13.0509 23.8359 9.8325 29.1488 9.8325C31.6931 9.8325 34.3538 10.2863 34.3538 10.2863V16.005H31.4212C28.5338 16.005 27.6328 17.7975 27.6328 19.6359V24H34.0809L33.0497 30.7209H27.6328V46.9688C38.7478 45.2231 47.25 35.6044 47.25 24Z" },

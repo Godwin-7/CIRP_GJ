@@ -22,7 +22,9 @@ const Chatbot = () => {
           </button>
         </div>
         <div className="chatbot-image">
-          <img src="/images/chatbot-image.png" alt="Chatbot" />
+          <div className="image-container">
+            <img src="/images/chatbot1.avif" alt="Chatbot" />
+          </div>
         </div>
       </div>
     </section>

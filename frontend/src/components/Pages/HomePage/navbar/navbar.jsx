@@ -16,6 +16,7 @@ const Navbar = () => {
   const textSphereRef = useRef(null);
   const fourRef = useRef(null);
   const devRef = useRef(null);
+  const chatbotRef = useRef(null);
 
   // Refs for navigation elements
   const logoRef = useRef(null);
@@ -26,6 +27,7 @@ const Navbar = () => {
   const textSphereNavRef = useRef(null);
   const contactNavRef = useRef(null);
   const devNavRef = useRef(null);
+  const chatbotNavRef = useRef(null);
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
@@ -39,6 +41,7 @@ const Navbar = () => {
     textSphereRef.current = document.getElementById("TextShpere");
     fourRef.current = document.getElementById("four");
     devRef.current = document.getElementById("dev");
+    chatbotRef.current = document.getElementById("chatbot");
 
     const handleScroll = () => {
       const windoo = window.pageYOffset;
@@ -49,7 +52,8 @@ const Navbar = () => {
         !twoRef.current ||
         !textSphereRef.current ||
         !fourRef.current ||
-        !devRef.current
+        !devRef.current ||
+        !chatbotRef.current
       ) {
         return;
       }
@@ -64,6 +68,7 @@ const Navbar = () => {
         textSphereNavRef.current.removeAttribute("id");
         contactNavRef.current.removeAttribute("id");
         devNavRef.current.removeAttribute("id");
+        chatbotNavRef.current.removeAttribute("id");
         logoRef.current.removeAttribute("id", "blue");
       } else if (
         windoo >= aboutUsRef.current.offsetTop &&
@@ -75,6 +80,7 @@ const Navbar = () => {
         textSphereNavRef.current.removeAttribute("id");
         contactNavRef.current.removeAttribute("id");
         devNavRef.current.removeAttribute("id");
+        chatbotNavRef.current.removeAttribute("id");
         logoRef.current.setAttribute("id", "blue");
       } else if (
         windoo >= twoRef.current.offsetTop &&
@@ -86,6 +92,7 @@ const Navbar = () => {
         textSphereNavRef.current.removeAttribute("id");
         contactNavRef.current.removeAttribute("id");
         devNavRef.current.removeAttribute("id");
+        chatbotNavRef.current.removeAttribute("id");
         logoRef.current.setAttribute("id", "blue");
       } else if (
         windoo >= textSphereRef.current.offsetTop &&
@@ -97,6 +104,7 @@ const Navbar = () => {
         ideasNavRef.current.removeAttribute("id");
         contactNavRef.current.removeAttribute("id");
         devNavRef.current.removeAttribute("id");
+        chatbotNavRef.current.removeAttribute("id");
         logoRef.current.removeAttribute("id", "blue");
       } else if (
         windoo >= fourRef.current.offsetTop &&
@@ -108,14 +116,28 @@ const Navbar = () => {
         ideasNavRef.current.removeAttribute("id");
         textSphereNavRef.current.removeAttribute("id");
         devNavRef.current.removeAttribute("id");
+        chatbotNavRef.current.removeAttribute("id");
         logoRef.current.setAttribute("id", "blue");
-      } else if (windoo >= devRef.current.offsetTop) {
+      } else if (
+        windoo >= devRef.current.offsetTop &&
+        windoo < chatbotRef.current.offsetTop
+      ) {
         devNavRef.current.setAttribute("id", "active5");
         homeNavRef.current.removeAttribute("id");
         aboutUsNavRef.current.removeAttribute("id");
         ideasNavRef.current.removeAttribute("id");
         textSphereNavRef.current.removeAttribute("id");
         contactNavRef.current.removeAttribute("id");
+        chatbotNavRef.current.removeAttribute("id");
+        logoRef.current.removeAttribute("id", "blue");
+      } else if (windoo >= chatbotRef.current.offsetTop) {
+        chatbotNavRef.current.setAttribute("id", "active7");
+        homeNavRef.current.removeAttribute("id");
+        aboutUsNavRef.current.removeAttribute("id");
+        ideasNavRef.current.removeAttribute("id");
+        textSphereNavRef.current.removeAttribute("id");
+        contactNavRef.current.removeAttribute("id");
+        devNavRef.current.removeAttribute("id");
         logoRef.current.removeAttribute("id", "blue");
       }
     };
@@ -170,11 +192,14 @@ const Navbar = () => {
         <a className="five" href="#dev" ref={devNavRef}>
           Dev
         </a>
+        <a className="six" href="#chatbot" ref={chatbotNavRef}>
+          Chatbot
+        </a>
       </div>
-      <div className="auth-buttons flex gap-4 ">
+      <div className="auth-buttons">
         {isLoggedIn ? (
           <button
-            className="logout-btn p-[10vh] bg-red-500 text-white rounded-lg shadow-md hover:bg-red-600 transition duration-300 hover:cursor-pointer"
+            className="auth-btn logout-btn"
             onClick={handleLogout}
           >
             Logout
@@ -182,7 +207,7 @@ const Navbar = () => {
         ) : (
           <a
             href="/login"
-            className="login-btn px-4 py-2 bg-green-500 text-white rounded-lg shadow-md hover:bg-green-600 transition duration-300 hover:cursor-pointer"
+            className="auth-btn login-btn"
           >
             Login
           </a>
