@@ -18,6 +18,7 @@ import Register from "./components/Register";
 import Chat from "./components/Pages/ChatPage/Chat";
 import Chatbot from "./components/Pages/HomePage/Chatbot/Chatbot";
 import ChatbotPage from "./components/Pages/HomePage/Chatbot/ChatbotPage";
+import AuthorApp from "./components/Author";
 function App() {
   return (
     <Router>
@@ -50,6 +51,7 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/chat" element={<Chat />} />
         <Route path="/chatbot" element={<ChatbotPage />} />
+        <Route path="/addauthor" element={<AuthorApp />} />
       </Routes>
     </Router>
   );

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import "./UserForm.css"; // Import the custom CSS
+import "./UserForm.css";
+import AuthorApp from "../../Author";
 
 const UserForm = () => {
   const [Domain, setDomain] = useState([]);
@@ -130,6 +131,7 @@ const UserForm = () => {
             {isSubmitting ? "Submitting..." : "Submit Idea"}
           </button>
         </form>
+        <AuthorApp />
       </div>
     </div>
   );

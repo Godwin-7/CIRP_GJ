@@ -11,6 +11,7 @@ const multer = require("multer");
 const jwt = require("jsonwebtoken");
 const dotenv = require("dotenv");
 const { createServer } = require("http");
+const Author = require('./models/Author');  
 const { Server } = require("socket.io");
 
 const JWT_SECRET_KEY = "deuqwncqwufqurfu"
@@ -263,6 +264,35 @@ app.get('/api/domains/:domainId/topics', async (req, res) => {
   }
 });
 
+
+app.post('/addauthor', async (req, res) => {
+  const { authorName, authorEmail, topic, bio } = req.body;
+
+  if (!authorName || !authorEmail || !topic) {
+    return res.status(400).json({ message: "Author name, email, and topic are required" });
+  }
+
+  try {
+    const newAuthor = new Author({ authorName, authorEmail, topic, bio });
+    await newAuthor.save();
+    res.status(201).json({ message: "Author added successfully", newAuthor });
+
+  } catch (error) {
+    console.error("Error adding author:", error);
+    res.status(500).json({ message: "Server error", error });
+  }
+});
+
+// ✅ Get All Authors
+app.get('/authors', async (req, res) => {
+  try {
+    const authors = await Author.find();
+    res.status(200).json(authors);
+  } catch (error) {
+    console.error("Error fetching authors:", error);
+    res.status(500).json({ message: "Server error", error });
+  }
+});
 
 server.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
