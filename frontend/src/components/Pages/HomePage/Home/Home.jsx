@@ -74,11 +74,11 @@ const Home = () => {
       <div className="right">
       <div className="rotating-circle-container" style={{ width: '1000px', height: '1000px' }}>
     <div className="rotating-circle">
-        <div className="circle-text" data-rotation="0"><b>Value 1</b></div>
-        <div className="circle-text" data-rotation="72"><b>Value 2</b></div>
-        <div className="circle-text" data-rotation="144"><b>Value 3</b></div>
-        <div className="circle-text" data-rotation="216"><b>Value 4</b></div>
-        <div className="circle-text" data-rotation="288"><b>Value 5</b></div>
+        <div className="circle-text" data-rotation="0"><b>Solar</b></div>
+        <div className="circle-text" data-rotation="72"><b>Wind</b></div>
+        <div className="circle-text" data-rotation="144"><b>Electricity</b></div>
+        <div className="circle-text" data-rotation="216"><b>AI & ML</b></div>
+        <div className="circle-text" data-rotation="288"><b>Land</b></div>
     </div>
     <div className="static-image">
         <img 
