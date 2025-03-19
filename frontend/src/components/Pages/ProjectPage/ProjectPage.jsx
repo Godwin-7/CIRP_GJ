@@ -10,6 +10,8 @@ const ProjectPage = () => {
   const [error, setError] = useState(null);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
+  const [author, setAuthor] = useState(null);
+  const [authorLoading, setAuthorLoading] = useState(true);
 
   useEffect(() => {
     const fetchIdeaDetails = async () => {
@@ -19,10 +21,33 @@ const ProjectPage = () => {
         );
         setIdea(response.data);
         setLoading(false);
+        
+        // After fetching idea, fetch matching author
+        if (response.data && response.data.topic) {
+          fetchAuthor(response.data.topic);
+        } else {
+          setAuthorLoading(false);
+        }
       } catch (error) {
         console.error("Error fetching idea details:", error);
         setError("Failed to load idea details. Please try again later.");
         setLoading(false);
+        setAuthorLoading(false);
+      }
+    };
+
+    const fetchAuthor = async (topic) => {
+      try {
+        const response = await axios.get(`http://localhost:5000/authors/topic/${topic}`);
+        if (response.data.authorName) {
+          setAuthor(response.data.authorName);
+        } else {
+          setAuthor(null);
+        }
+        setAuthorLoading(false);
+      } catch (error) {
+        console.error("Error fetching author:", error);
+        setAuthorLoading(false);
       }
     };
 
@@ -135,28 +160,36 @@ const ProjectPage = () => {
         </div>
 
         <aside className="author-box">
-          <h2>👤 Author</h2>
-          <div className="author-info">
-            <div className="author-avatar">
-              <img
-                src={
-                  idea.author?.profilePhoto || "https://via.placeholder.com/80"
-                }
-                alt={idea.author?.name || "Unknown Author"}
-              />
-            </div>
-            <div className="author-text">
-              <h3>{idea.author?.name || "Unknown Author"}</h3>
-              <p>
-                Email:{" "}
-                <a href={`mailto:${idea.author?.email}`}>
-                  {idea.author?.email || "N/A"}
-                </a>
-              </p>
-              <p>Contact: {idea.author?.contact || "N/A"}</p>
-            </div>
-          </div>
-        </aside>
+  <h2>👤 Author</h2>
+  {authorLoading ? (
+    <div className="author-loading">Loading author information...</div>
+  ) : author ? (
+    <div className="author-info">
+      <div className="author-avatar">
+        <img
+          src="https://via.placeholder.com/80"
+          alt={author}
+        />
+      </div>
+      <div className="author-text">
+        <h3>{author}</h3>
+      </div>
+    </div>
+  ) : (
+    <div className="author-info">
+      <div className="author-avatar">
+        <img
+          src="https://via.placeholder.com/80"
+          alt="Unknown Author"
+        />
+      </div>
+      <div className="author-text">
+        <h3>Unknown Author</h3>
+        <p>No author information available for this topic.</p>
+      </div>
+    </div>
+  )}
+</aside>
       </div>
     </div>
   );

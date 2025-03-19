@@ -294,6 +294,27 @@ app.get('/authors', async (req, res) => {
   }
 });
 
+
+// Fetch author by topic
+// Fetch author by topic
+app.get('/authors/topic/:topic', async (req, res) => {
+  const { topic } = req.params;
+
+  try {
+    // Find the author whose topic matches the provided topic (case-insensitive)
+    const author = await Author.findOne({ topic: { $regex: new RegExp(topic, 'i') } });
+
+    if (author) {
+      res.status(200).json({ authorName: author.authorName });
+    } else {
+      res.status(404).json({ message: "No author found for this topic." });
+    }
+  } catch (error) {
+    console.error("Error fetching author by topic:", error);
+    res.status(500).json({ message: "Server error", error });
+  }
+});
+
 server.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
