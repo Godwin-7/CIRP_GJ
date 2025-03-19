@@ -5,32 +5,39 @@ const AuthorApp = () => {
   const [formData, setFormData] = useState({
     authorName: "",
     authorEmail: "",
-    topic: "", // ✅ Added new field
+    topic: "",
     bio: "",
   });
 
   const [authors, setAuthors] = useState([]);
+  const [editingId, setEditingId] = useState(null);
 
-  // ✅ Handle Form Input Changes
+  // Handle Form Input Changes
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // ✅ Handle Form Submission
+  // Handle Form Submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://localhost:5000/addauthor", formData);
-      alert("Author added successfully!");
+      if (editingId) {
+        await axios.put(`http://localhost:5000/authors/${editingId}`, formData);
+        alert("Author updated successfully!");
+        setEditingId(null);
+      } else {
+        await axios.post("http://localhost:5000/addauthor", formData);
+        alert("Author added successfully!");
+      }
       fetchAuthors();
-      setFormData({ authorName: "", authorEmail: "", topic: "", bio: "" }); // ✅ Reset topic field
+      setFormData({ authorName: "", authorEmail: "", topic: "", bio: "" });
     } catch (error) {
-      console.error("Error adding author:", error);
-      alert("Failed to add author");
+      console.error("Error with author:", error);
+      alert(editingId ? "Failed to update author" : "Failed to add author");
     }
   };
 
-  // ✅ Fetch Authors
+  // Fetch Authors
   const fetchAuthors = async () => {
     try {
       const res = await axios.get("http://localhost:5000/authors");
@@ -40,77 +47,137 @@ const AuthorApp = () => {
     }
   };
 
+  // Handle Edit
+  const handleEdit = (author) => {
+    setFormData({
+      authorName: author.authorName,
+      authorEmail: author.authorEmail,
+      topic: author.topic,
+      bio: author.bio || "",
+    });
+    setEditingId(author._id);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Handle Delete
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this author?")) {
+      try {
+        await axios.delete(`http://localhost:5000/authors/${id}`);
+        alert("Author deleted successfully!");
+        fetchAuthors();
+      } catch (error) {
+        console.error("Error deleting author:", error);
+        alert("Failed to delete author");
+      }
+    }
+  };
+
   useEffect(() => {
     fetchAuthors();
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-8">
-      <div className="max-w-4xl mx-auto">
-        <h2 className="text-3xl font-bold mb-6">Author Management</h2>
-        <form
-          onSubmit={handleSubmit}
-          className="bg-gray-800 p-6 rounded-lg shadow-lg mb-8"
-        >
-          <h3 className="text-xl font-bold mb-4">Add Author</h3>
-
-          {/* ✅ Author Name */}
-          <div className="mb-4">
-            <label className="block">Author Name</label>
+    <div className="author-container">
+      <h2>Author Management</h2>
+      <div className="author-form">
+        <h3>{editingId ? "Edit Author" : "Add Author"}</h3>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="authorName">Author Name</label>
             <input
               type="text"
+              id="authorName"
               name="authorName"
               value={formData.authorName}
               onChange={handleChange}
-              className="w-full p-2 rounded bg-gray-700 text-white"
               required
             />
           </div>
 
-          {/* ✅ Author Email */}
-          <div className="mb-4">
-            <label className="block">Author Email</label>
+          <div className="form-group">
+            <label htmlFor="authorEmail">Author Email</label>
             <input
               type="email"
+              id="authorEmail"
               name="authorEmail"
               value={formData.authorEmail}
               onChange={handleChange}
-              className="w-full p-2 rounded bg-gray-700 text-white"
               required
             />
           </div>
 
-          {/* ✅ Topic Field */}
-          <div className="mb-4">
-            <label className="block">Topic</label>
+          <div className="form-group">
+            <label htmlFor="topic">Topic</label>
             <input
               type="text"
+              id="topic"
               name="topic"
               value={formData.topic}
               onChange={handleChange}
-              className="w-full p-2 rounded bg-gray-700 text-white"
               required
             />
           </div>
 
-          {/* ✅ Bio Field */}
-          <div className="mb-4">
-            <label className="block">Bio (Optional)</label>
+          <div className="form-group">
+            <label htmlFor="bio">Bio (Optional)</label>
             <textarea
+              id="bio"
               name="bio"
               value={formData.bio}
               onChange={handleChange}
-              className="w-full p-2 rounded bg-gray-700 text-white"
             />
           </div>
 
-          <button
-            type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded transition"
-          >
-            Add Author
+          <button type="submit">
+            {editingId ? "Update Author" : "Add Author"}
           </button>
+          {editingId && (
+            <button
+              type="button"
+              onClick={() => {
+                setEditingId(null);
+                setFormData({ authorName: "", authorEmail: "", topic: "", bio: "" });
+              }}
+              className="edit-button"
+              style={{ marginTop: "10px" }}
+            >
+              Cancel Edit
+            </button>
+          )}
         </form>
+      </div>
+
+      <div className="author-list">
+        <h3>Authors List</h3>
+        {authors.length > 0 ? (
+          authors.map((author) => (
+            <div key={author._id} className="author-item">
+              <div className="author-item-info">
+                <h4>{author.authorName}</h4>
+                <p>{author.authorEmail}</p>
+                <span className="topic">{author.topic}</span>
+                {author.bio && <p>{author.bio}</p>}
+              </div>
+              <div className="author-item-actions">
+                <button
+                  onClick={() => handleEdit(author)}
+                  className="edit-button"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDelete(author._id)}
+                  className="delete-button"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="empty-authors">No authors found. Add your first author!</div>
+        )}
       </div>
     </div>
   );

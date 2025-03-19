@@ -1,0 +1,214 @@
+/* AuthorApp Component Styling */
+.author-container {
+    margin-top: 50px;
+    padding-top: 35px;
+    border-top: 2px solid rgba(204, 30, 74, 0.3);
+  }
+  
+  .author-container h2 {
+    font-size: 2rem;
+    color: #e7eaee;
+    margin-bottom: 25px;
+    text-align: center;
+    font-weight: 700;
+  }
+  
+  .author-form {
+    background-color: #0a2642;
+    padding: 30px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(204, 30, 74, 0.2);
+  }
+  
+  .author-form h3 {
+    font-size: 1.6rem;
+    color: #e7eaee;
+    margin-bottom: 20px;
+    text-align: center;
+    font-weight: 600;
+  }
+  
+  .author-form .form-group {
+    margin-bottom: 22px;
+  }
+  
+  .author-form label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: 600;
+    color: #e7eaee;
+    font-size: 1.05rem;
+  }
+  
+  .author-form input,
+  .author-form textarea {
+    width: 100%;
+    padding: 14px 16px;
+    border: 2px solid #cc1e4a;
+    border-radius: 8px;
+    background-color: #e7eaee;
+    color: #001f3f;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .author-form input:focus,
+  .author-form textarea:focus {
+    outline: none;
+    border-color: #ff3366;
+    box-shadow: 0 0 0 3px rgba(204, 30, 74, 0.25);
+  }
+  
+  .author-form textarea {
+    resize: vertical;
+    min-height: 100px;
+  }
+  
+  .author-form button {
+    padding: 14px 20px;
+    background-color: #cc1e4a;
+    color: #e7eaee;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    width: 100%;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    letter-spacing: 0.5px;
+    margin-top: 15px;
+  }
+  
+  .author-form button:hover {
+    background-color: #e7eaee;
+    color: #cc1e4a;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+  }
+  
+  .author-list {
+    background-color: #0a2642;
+    padding: 25px;
+    border-radius: 12px;
+    margin-top: 30px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(204, 30, 74, 0.2);
+  }
+  
+  .author-list h3 {
+    font-size: 1.6rem;
+    color: #e7eaee;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(204, 30, 74, 0.3);
+    font-weight: 600;
+  }
+  
+  .author-item {
+    background-color: rgba(231, 234, 238, 0.05);
+    padding: 18px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    transition: all 0.2s ease;
+    border-left: 3px solid #cc1e4a;
+  }
+  
+  .author-item:hover {
+    background-color: rgba(231, 234, 238, 0.1);
+    transform: translateX(3px);
+  }
+  
+  .author-item-info {
+    flex: 1;
+    min-width: 200px;
+  }
+  
+  .author-item-info h4 {
+    font-size: 1.2rem;
+    margin-bottom: 8px;
+    color: #e7eaee;
+    font-weight: 600;
+  }
+  
+  .author-item-info p {
+    font-size: 0.95rem;
+    color: #b0bec5;
+    margin: 5px 0;
+    line-height: 1.5;
+    text-align: left;
+  }
+  
+  .author-item-info .topic {
+    color: #cc1e4a;
+    font-weight: 500;
+    display: inline-block;
+    background-color: rgba(204, 30, 74, 0.1);
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-top: 5px;
+  }
+  
+  .author-item-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  
+  .author-item-actions button {
+    width: auto;
+    padding: 10px 16px;
+    font-size: 0.9rem;
+    margin: 0;
+  }
+  
+  .delete-button {
+    background-color: #dc3545;
+  }
+  
+  .delete-button:hover {
+    background-color: #e7eaee;
+    color: #dc3545;
+  }
+  
+  .edit-button {
+    background-color: #0077cc;
+  }
+  
+  .edit-button:hover {
+    background-color: #e7eaee;
+    color: #0077cc;
+  }
+  
+  /* Empty state */
+  .empty-authors {
+    text-align: center;
+    padding: 30px;
+    color: #b0bec5;
+    font-style: italic;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .author-form,
+    .author-list {
+      padding: 20px;
+    }
+    
+    .author-item {
+      padding: 15px;
+    }
+    
+    .author-item-actions {
+      margin-top: 15px;
+      width: 100%;
+      justify-content: flex-end;
+    }
+  }
