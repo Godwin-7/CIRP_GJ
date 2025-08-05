@@ -166,8 +166,7 @@ const Navbar = () => {
           viewBox="0 0 85 103"
           xmlns="http://www.w3.org/2000/svg"
         >
-          <path d="M50 1H1V25C1 25 36.5 23.5 45.5 25C54.5 26.5 55 32 55 36C55 40 51.5504 46.0249 45.5 46H29V65H32.5L52.5 102.5H84L61.5 62.5C77.5976 55.9167 85.5 47.5 83 27.5C80.5 7.5 55 0.999994 50 1Z" />
-        </svg>
+          </svg>
       </div>
       <div
         className={menuOpen ? "openPage" : "navlinks"}
