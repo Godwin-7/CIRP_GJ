@@ -61,7 +61,7 @@ const Home = () => {
         <div className="home-container">
           <div className="home-row">
             <div className="home-content-left">
-              <h3 className="home-greeting">Welcome to</h3>
+              <h3 className="home-greeting">Welcome to CIRP</h3>
               <div 
                 className="home-animated-text"
                 style={{
