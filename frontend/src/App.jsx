@@ -1,3 +1,4 @@
+// App.js
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./components/Pages/HomePage/Home/Home";
@@ -21,44 +22,41 @@ import ChatbotPage from "./components/Pages/HomePage/Chatbot/ChatbotPage";
 import AuthorApp from "./components/Author";
 
 function App() {
-  return (
-    <Router>
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <>
-              <Navbar />
-              <Home />
-              <AboutUs />
-              <Ideas />
-              <TextShpere />
-              <ContactForm />
-              <DevelopersSection />
-              <Chatbot />
-              <Footer />
-            </>
-          }
-        />
-        <Route path="/domains" element={<DomainPage />} />
-        {/* ✅ Updated route to remove :title, as it's no longer needed */}
-        <Route path="/domains/:domainId" element={<TitlePage />} />
-        {/* This route can be simplified to just /ideas/:ideaId, but keeping for now
-            as it matches the previous nested structure */}
-        <Route
-          path="/domains/:domainId/ideas/:ideaId"
-          element={<ProjectPage />}
-        />
-        <Route path="/domainform" element={<DomainAdder />} />
-        <Route path="/addidea" element={<UserForm />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/chat" element={<Chat />} />
-        <Route path="/chatbot" element={<ChatbotPage />} />
-        <Route path="/addauthor" element={<AuthorApp />} />
-      </Routes>
-    </Router>
-  );
+  return (
+    <Router>
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <>
+              <Navbar />
+              <Home />
+              <AboutUs />
+              <Ideas />
+              <TextShpere />
+              <ContactForm />
+              <DevelopersSection />
+              <Chatbot />
+              <Footer />
+            </>
+          }
+        />
+        <Route path="/domains" element={<DomainPage />} />
+        <Route path="/domains/:domainId" element={<TitlePage />} />
+        <Route
+          path="/domains/:domainId/ideas/:ideaId"
+          element={<ProjectPage />}
+        />
+        <Route path="/domainform" element={<DomainAdder />} />
+        <Route path="/addidea" element={<UserForm />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/chat" element={<Chat />} />
+        <Route path="/chatbot" element={<ChatbotPage />} />
+        <Route path="/addauthor" element={<AuthorApp />} />
+      </Routes>
+    </Router>
+  );
 }
 
 export default App;

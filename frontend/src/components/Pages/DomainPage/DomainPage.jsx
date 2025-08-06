@@ -1,3 +1,4 @@
+// DomainPage.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -5,8 +6,8 @@ import "./DomainPage.css";
 
 const DomainPage = () => {
   const navigate = useNavigate();
-  const [selectedLevel, setSelectedLevel] = useState(null);
-  // ✅ Initializing state as an empty array is a good practice.
+  // ✅ CORRECTED: State now tracks the selected difficulty level
+  const [selectedLevel, setSelectedLevel] = useState(null); 
   const [Domains, setDomains] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -14,11 +15,10 @@ const DomainPage = () => {
   const getdomain = async () => {
     try {
       const response = await axios.get("http://localhost:5000/api/domains");
-      // ✅ The backend might return null or an empty object, so we handle it here.
       if (response.data) {
         setDomains(response.data);
       } else {
-        setDomains([]); // Ensure it's always an array
+        setDomains([]);
       }
     } catch (err) {
       console.error("Error fetching domains:", err);
@@ -28,31 +28,24 @@ const DomainPage = () => {
     }
   };
 
-  const handleLevelClick = (domainId, level) => {
-    // Check if Domains is an array before using find
-    const domain = Array.isArray(Domains) ? Domains.find((d) => d._id === domainId) : null;
-    if (domain) {
-      navigate(`/domains/${domain.title.toLowerCase()}/${domainId}`);
-    }
-  };
-
   const handleDomainClick = (domainId) => {
-    // Check if Domains is an array before using find
-    const domain = Array.isArray(Domains) ? Domains.find((d) => d._id === domainId) : null;
-    if (domain) {
-      navigate(`/domains/${domain.title.toLowerCase()}/${domainId}`);
-    }
+    navigate(`/domains/${domainId}`);
   };
 
   const handleAddDomainClick = () => {
     navigate("/domainform");
   };
 
+  // ✅ CORRECTED: A new function to handle the top-level difficulty filter buttons.
+  const handleTopLevelClick = (level) => {
+    // If the same button is clicked, unselect it. Otherwise, set the new level.
+    setSelectedLevel(selectedLevel === level ? null : level);
+  };
+
   useEffect(() => {
     getdomain();
   }, []);
 
-  // Display loading or error messages
   if (isLoading) {
     return <div className="domain-loading">Loading domains...</div>;
   }
@@ -60,13 +53,17 @@ const DomainPage = () => {
     return <div className="domain-error">Error: {error}</div>;
   }
 
-  // ✅ Add the conditional check before mapping
   const renderDomainCards = () => {
     if (!Array.isArray(Domains) || Domains.length === 0) {
       return <p className="no-domains-message">No domains available at the moment.</p>;
     }
     
-    return Domains.map((domain) => (
+    // ✅ CORRECTED: Filter domains based on the selected difficulty level.
+    const filteredDomains = selectedLevel 
+      ? Domains.filter(domain => domain.topics && domain.topics[selectedLevel] && domain.topics[selectedLevel].length > 0)
+      : Domains;
+
+    return filteredDomains.map((domain) => (
       <div
         key={domain._id}
         className="domain-card"
@@ -84,14 +81,13 @@ const DomainPage = () => {
         <div className="hover-content">
           <h2 className="hover-domain-title">{domain.title}</h2>
           <div className="hover-topics">
-            {selectedLevel ? (
-              // ✅ Add conditional check for domain.topics and the selected level
-              domain.topics && domain.topics[selectedLevel] && domain.topics[selectedLevel].map((topic, index) => (
+            {/* ✅ CORRECTED: Displays topics based on the currently selected level. */}
+            {selectedLevel && domain.topics && domain.topics[selectedLevel] && domain.topics[selectedLevel].map((topic, index) => (
                 <p key={index}>{topic}</p>
-              ))
-            ) : (
+              ))}
+            {/* If no level is selected, display a mix of topics */}
+            {!selectedLevel && (
               <>
-                {/* ✅ Add conditional checks for all topic levels */}
                 {domain.topics && domain.topics.easy && domain.topics.easy.slice(0, 2).map((topic, index) => (
                   <p key={`easy-${index}`}>{topic}</p>
                 ))}
@@ -104,13 +100,9 @@ const DomainPage = () => {
               </>
             )}
           </div>
-          {!selectedLevel && (
-            <div className="hover-levels">
-              <button onClick={(e) => { e.stopPropagation(); handleLevelClick(domain._id, "easy"); }}>Easy</button>
-              <button onClick={(e) => { e.stopPropagation(); handleLevelClick(domain._id, "medium"); }}>Medium</button>
-              <button onClick={(e) => { e.stopPropagation(); handleLevelClick(domain._id, "hard"); }}>Hard</button>
-            </div>
-          )}
+          <div className="hover-levels">
+            <button onClick={(e) => { e.stopPropagation(); handleDomainClick(domain._id); }}>View Topics</button>
+          </div>
         </div>
         <button className="click-button">Click Here</button>
       </div>
