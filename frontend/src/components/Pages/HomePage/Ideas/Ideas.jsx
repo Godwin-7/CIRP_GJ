@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import "./Ideas.css";
 import { Link } from 'react-router-dom';
-import axios from "axios";
 
 const IdeaCard = ({ imageUrl, title, description, linkTo }) => {
   return (
@@ -28,65 +27,79 @@ const IdeaCard = ({ imageUrl, title, description, linkTo }) => {
 };
 
 const Ideas = () => {
-  const [domains, setDomains] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    const fetchDomains = async () => {
-      try {
-        // Fetch data from the new backend endpoint
-        const response = await axios.get("http://localhost:5000/api/domains");
-        setDomains(response.data);
-        setIsLoading(false);
-      } catch (err) {
-        console.error("Error fetching domains:", err);
-        setError("Failed to load domains.");
-        setIsLoading(false);
-      }
-    };
-    fetchDomains();
-  }, []);
-
-  if (isLoading) {
-    return <div className="ideas-loading">Loading ideas...</div>;
-  }
-
-  if (error) {
-    return <div className="ideas-error">Error: {error}</div>;
-  }
+  const ideasData = [
+    {
+      imageUrl: "/images/Elelctricity.jpeg",
+      title: "Electricity Generation",
+      description: "Click to know more about Piezoelectric Materials",
+      linkTo: "#three"
+    },
+    {
+      imageUrl: "/images/wwdwyw.svg",
+      title: "Solar Energy",
+      description: "Explore sustainable solar energy solutions",
+      linkTo: "#four"
+    },
+    {
+      imageUrl: "/images/cwa.svg",
+      title: "Wind Power",
+      description: "Learn about wind energy technologies",
+      linkTo: "#five"
+    },
+    {
+      imageUrl: "/images/map.svg",
+      title: "Hydro Power",
+      description: "Discover hydroelectric power generation",
+      linkTo: "#six"
+    },
+    {
+      imageUrl: "/images/biomass.svg",
+      title: "Biomass Energy",
+      description: "Learn about organic matter energy conversion",
+      linkTo: "#seven"
+    },
+    {
+        imageUrl: "", // No image for the special card
+        title: "All Domains",
+        description: "Click to view all the available Domains",
+        linkTo: "/domains",
+        isSpecial: true
+    }
+  ];
 
   return (
     <section id="ideas">
       <h1 id="ideas-main-title">Ideas</h1>
       <div className="ideas-container scrollbar-hide">
-        {domains.map((domain) => (
-          <IdeaCard
-            key={domain._id}
-            imageUrl={`http://localhost:5000${domain.imageurl}`}
-            title={domain.title}
-            description={domain.description}
-            linkTo={`/domains/${domain._id}`}
-          />
-        ))}
-
-        {/* This is the special card that links to all domains */}
-        <Link to="/domains" className="ideas-link no-underline ideas-all-domains-card">
-          <div className="ideas-service-card">
-            <div className="ideas-card-content">
-              <h2 className="ideas-all-domain-title">All Domains</h2>
-              <p className="ideas-all-domain-description">Click to view all the available Domains</p>
-              <div className="ideas-hover-domains">
-                {domains.slice(0, 4).map((d) => (
-                  <p key={d._id}>{d.title}</p>
-                ))}
+        {ideasData.map((idea, index) =>
+          idea.isSpecial ? (
+            <Link to="/domains" key={index} className="ideas-link no-underline ideas-all-domains-card">
+              <div className="ideas-service-card">
+                <div className="ideas-card-content">
+                  <h2 className="ideas-all-domain-title">{idea.title}</h2>
+                  <p className="ideas-all-domain-description">{idea.description}</p>
+                  <div className="ideas-hover-domains">
+                    <p>Water</p>
+                    <p>Sun</p>
+                    <p>Wind</p>
+                    <p>Earth</p>
+                  </div>
+                  <div className="ideas-click-button-wrapper">
+                    <p className="ideas-click-button">Click Here</p>
+                  </div>
+                </div>
               </div>
-              <div className="ideas-click-button-wrapper">
-                <p className="ideas-click-button">Click Here</p>
-              </div>
-            </div>
-          </div>
-        </Link>
+            </Link>
+          ) : (
+            <IdeaCard
+              key={index}
+              imageUrl={idea.imageUrl}
+              title={idea.title}
+              description={idea.description}
+              linkTo={idea.linkTo}
+            />
+          )
+        )}
       </div>
     </section>
   );
