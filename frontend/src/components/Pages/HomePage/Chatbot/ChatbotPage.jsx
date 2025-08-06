@@ -57,7 +57,7 @@ const ChatbotPage = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer YOUR_OPENAI_API_KEY' // Replace with your API key
+          'Authorization': 'Bearer ${import.meta.env.OPENAI_API_KEY}' // Replace with your API key
         },
         body: JSON.stringify({
           model: "gpt-3.5-turbo", // or "gpt-4" for better responses

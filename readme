@@ -1,0 +1,25 @@
+Primary Background: #050711 (deep near-black for depth)
+
+Gradient Dark Purple: #120b26 (smooth purple tone)
+
+Gradient Dark Blue: #0d1230 (soft blue tone)
+
+Highlight Layer (subtle accent overlay): rgba(0, 248, 255, 0.08) (cyan glow)
+
+Card Background: #050f38ff (still slightly lighter than body)
+
+Title / Neon Cyan: #0ef
+
+Accent Purple: #7300ffb3
+
+Accent Blue: #5004ff63
+
+Text Primary: #e6f0ff
+
+Text Secondary: #b8c6e8
+
+Border / Divider: #29d4e4ff
+
+Glow Blue: rgba(0, 247, 255, 1)
+
+Glow Purple: rgba(87, 0, 193, 0.59)

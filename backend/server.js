@@ -1,37 +1,34 @@
 const express = require("express");
 const mongoose = require("mongoose");
-const Domain = require("./models/Domain");
-const UserLog = require("./models/Login");
-const Message = require("./models/Message");  // Import the chat schema
 const cors = require("cors");
-const fs = require("fs");
-const path = require("path");
-const app = express();
-const multer = require("multer");
-const jwt = require("jsonwebtoken");
-const dotenv = require("dotenv");
+const helmet = require("helmet");
+const compression = require("compression");
+const morgan = require("morgan");
+const rateLimit = require("express-rate-limit");
 const { createServer } = require("http");
-const Author = require('./models/Author');  
 const { Server } = require("socket.io");
+const path = require("path");
+const fs = require("fs");
+require("dotenv").config();
 
-const JWT_SECRET_KEY = "deuqwncqwufqurfu"
+// Import routes
+const authRoutes = require("./routes/auth");
+const domainRoutes = require("./routes/domains");
+const ideaRoutes = require("./routes/ideas");
+const authorRoutes = require("./routes/authors");
+const commentRoutes = require("./routes/comments");
+const chatRoutes = require("./routes/chat");
 
-dotenv.config();
-app.use(cors());
-const corsOptions = {
-  origin: ['http://localhost:5174'],  // Add your frontend URL here
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
-};
+// Import middleware
+const { errorHandler } = require("./middleware/auth");
 
-app.use(cors(corsOptions));
+const app = express();
+const server = createServer(app);
 
-const SECRET_KEY = process.env.SECRET_KEY || 'sdwucwecuweuwcu';
-const server = require("http").createServer(app);
-const io = require("socket.io")(server, {
+// Socket.IO setup
+const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173",
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
     methods: ["GET", "POST"],
     credentials: true
   }
@@ -39,282 +36,166 @@ const io = require("socket.io")(server, {
 
 const PORT = process.env.PORT || 5000;
 
-mongoose.connect('mongodb+srv://csundar993:S1RjXYDtC73UGJCE@cluster2.3g8fa.mongodb.net/cirp', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: "Too many requests from this IP, please try again later."
 });
 
-app.use(cors());
-app.use(express.json());
+// Middleware
+app.use(helmet());
+app.use(compression());
+app.use(morgan("combined"));
+app.use(limiter);
 
-const uploadDir = path.join(__dirname, "uploads");
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+// CORS configuration
+const corsOptions = {
+  origin: [
+    process.env.FRONTEND_URL || "http://localhost:5173",
+    "http://localhost:5174"
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
+};
 
+app.use(cors(corsOptions));
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+
+// Create upload directories if they don't exist
+const uploadDirs = [
+  "uploads",
+  "uploads/domains",
+  "uploads/ideas",
+  "uploads/authors",
+  "uploads/pdfs"
+];
+
+uploadDirs.forEach(dir => {
+  const fullPath = path.join(__dirname, dir);
+  if (!fs.existsSync(fullPath)) {
+    fs.mkdirSync(fullPath, { recursive: true });
+  }
+});
+
+// Static file serving
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
+// Database connection
+mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://csundar993:S1RjXYDtC73UGJCE@cluster2.3g8fa.mongodb.net/cirp', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => console.log("✅ MongoDB connected successfully"))
+.catch((err) => console.error("❌ MongoDB connection error:", err));
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)),
-});
+// Socket.IO for real-time chat
+const Message = require("./models/Message");
 
-const upload = multer({ storage });
-
-// 🔥 SOCKET.IO FOR GLOBAL CHAT 🔥
 io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
+  console.log("👤 User connected:", socket.id);
 
-  // Send previous messages on connect
+  // Send chat history when user connects
   socket.on("getMessages", async () => {
-    const messages = await Message.find().sort({ timestamp: 1 });
-    socket.emit("chatHistory", messages);
+    try {
+      const messages = await Message.find().sort({ timestamp: 1 }).limit(100);
+      socket.emit("chatHistory", messages);
+    } catch (error) {
+      console.error("Error fetching chat history:", error);
+    }
   });
 
   // Handle new message
-  socket.on("sendMessage", async ({ username, email, message }) => {
-    const newMessage = new Message({ username, email, message });
-    await newMessage.save();
-    
-    // Broadcast the message to all clients
-    io.emit("receiveMessage", newMessage);
+  socket.on("sendMessage", async ({ username, email, message, domainId }) => {
+    try {
+      const newMessage = new Message({ 
+        username, 
+        email, 
+        message, 
+        domainId: domainId || null 
+      });
+      await newMessage.save();
+      
+      // Broadcast message to all clients
+      io.emit("receiveMessage", newMessage);
+    } catch (error) {
+      console.error("Error saving message:", error);
+    }
+  });
+
+  // Join domain-specific room for domain chat
+  socket.on("joinDomain", (domainId) => {
+    socket.join(`domain_${domainId}`);
+    console.log(`User ${socket.id} joined domain ${domainId}`);
+  });
+
+  // Send domain-specific message
+  socket.on("sendDomainMessage", async ({ username, email, message, domainId }) => {
+    try {
+      const newMessage = new Message({ 
+        username, 
+        email, 
+        message, 
+        domainId 
+      });
+      await newMessage.save();
+      
+      // Broadcast to domain room
+      io.to(`domain_${domainId}`).emit("receiveDomainMessage", newMessage);
+    } catch (error) {
+      console.error("Error saving domain message:", error);
+    }
   });
 
   socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
+    console.log("👤 User disconnected:", socket.id);
   });
 });
 
+// Routes
+app.use("/api/auth", authRoutes);
+app.use("/api/domains", domainRoutes);
+app.use("/api/ideas", ideaRoutes);
+app.use("/api/authors", authorRoutes);
+app.use("/api/comments", commentRoutes);
+app.use("/api/chat", chatRoutes);
 
+// Legacy routes for compatibility
+app.use("/", domainRoutes);
+app.use("/", ideaRoutes);
+app.use("/", authorRoutes);
 
-app.post('/domainform', upload.single('image'), async (req, res) => {
-  const { title, description, topics } = req.body;
-  const imageurl = req.file ? `/uploads/${req.file.filename}` : null;
-
-  let parsedTopics;
-  try {
-    parsedTopics = JSON.parse(topics);
-  } catch (error) {
-    return res.status(400).json({ error: "Invalid topics format" });
-  }
-
-  if (!parsedTopics || !Array.isArray(parsedTopics.easy) || 
-      !Array.isArray(parsedTopics.medium) || 
-      !Array.isArray(parsedTopics.hard)) {
-    return res.status(400).json({ error: 'Topics must be an object with easy, medium, and hard arrays.' });
-  }
-
-  const dom = new Domain({ title, imageurl, description, topics: parsedTopics });
-
-  try {
-    const savedDomain = await dom.save();
-    res.status(201).json(savedDomain);
-  } catch (err) {
-    res.status(400).json({ error: 'Error saving data', message: err.message });
-  }
-});
-
-app.get('/domains', async (req, res) => {
-  try {
-    const dom = await Domain.find();
-    res.status(200).json(dom);
-  } catch (err) {
-    res.status(400).json(err);
-  }
-});
-
-app.use("/uploads", express.static("uploads"));
-
-app.post("/addidea", upload.single("content"), async (req, res) => {
-  try {
-    const { domainId, topic, description } = req.body;
-    if (!domainId || !topic || !description) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-
-    const contentFilePath = req.file ? req.file.path : null;
-    if (!contentFilePath) {
-      return res.status(400).json({ message: "PDF file is required" });
-    }
-
-    const foundDomain = await Domain.findById(domainId);
-    if (!foundDomain) {
-      return res.status(404).json({ message: "Domain not found" });
-    }
-
-    if (!foundDomain.ideas) {
-      foundDomain.ideas = [];
-    }
-
-    foundDomain.ideas.push({ topic, description, content: contentFilePath });
-    await foundDomain.save();
-
-    res.status(201).json({ message: "Idea added successfully", domain: foundDomain });
-  } catch (error) {
-    console.error("Error adding idea:", error);
-    res.status(500).json({ message: "Server Error", error: error.message });
-  }
-});
-
-app.get('/domains/:domainId', async (req, res) => {
-  try {
-    const data = await Domain.findById(req.params.domainId);
-    res.status(200).json(data);
-  } catch (err) {
-    res.status(400).json(err);
-  }
-});
-
-app.get('/domains/:domainId/ideas/:ideaId', async (req, res) => {
-  try {
-    const domain = await Domain.findById(req.params.domainId);
-    if (!domain) {
-      return res.status(404).json({ message: "Domain not found" });
-    }
-    const idea = domain.ideas.id(req.params.ideaId); 
-    if (!idea) {
-      return res.status(404).json({ message: "Idea not found" });
-    }
-    res.status(200).json(idea);
-  } catch (err) {
-    console.error("Error fetching idea:", err);
-    res.status(500).json({ message: "Server error", error: err });
-  }
-});
-
-
-app.post('/register', async (req, res) => {
-  const { username, email, password } = req.body;
-  const User = new UserLog({
-    username,
-    email,
-    password,
+// Health check endpoint
+app.get("/api/health", (req, res) => {
+  res.status(200).json({ 
+    status: "OK", 
+    message: "Server is running",
+    timestamp: new Date().toISOString()
   });
-
-  try {
-    const logon = await User.save();
-    const token = jwt.sign({ id: logon._id, isAdmin: logon.isAdmin }, SECRET_KEY, { expiresIn: "1h" });
-
-    res.status(200).json({ user: logon, token });  
-  } catch (err) {
-    console.error("Registration error:", err);
-    res.status(400).json({ error: "Error registering user", message: err.message });
-  }
 });
 
-app.post("/login", async (req, res) => {
-  const { email, password } = req.body;
-  
-  try {
-    const user = await UserLog.findOne({ email });
-    if (!user) return res.status(400).json({ error: "User not found" });
-    
-    // Direct password comparison (plain text)
-    if (user.password !== password) {
-      return res.status(400).json({ error: "Invalid credentials" });
-    }
-
-    const token = jwt.sign({ userId: user._id },JWT_SECRET_KEY, {
-      expiresIn: "1h",
-    });
-
-    res.json({
-      token,
-      user: {
-        id: user._id,
-        username: user.username, 
-        email: user.email,
-      },
-    });
-  } catch (error) {
-    console.error("Login error:", error);
-    res.status(500).json({ error: "Server error" });
-  }
+// 404 handler
+app.use("*", (req, res) => {
+  res.status(404).json({ message: "Route not found" });
 });
 
-app.get('/api/domains/:domainId/topics', async (req, res) => {
-  try {
-    const { level } = req.query; 
-    const domain = await Domain.findById(req.params.domainId);
+// Error handling middleware
+app.use(errorHandler);
 
-    if (!domain) {
-      return res.status(404).json({ message: "Domain not found" });
-    }
-
-    let topics = [];
-    if (level === "easy") {
-      topics = domain.topics.easy;
-    } else if (level === "medium") {
-      topics = domain.topics.medium;
-    } else if (level === "hard") {
-      topics = domain.topics.hard;
-    } else {
-      topics = [
-        ...domain.topics.easy.map((t) => ({ level: "easy", ...t })),
-        ...domain.topics.medium.map((t) => ({ level: "medium", ...t })),
-        ...domain.topics.hard.map((t) => ({ level: "hard", ...t })),
-      ];
-    }
-
-    res.status(200).json(topics);
-  } catch (error) {
-    console.error("Error fetching topics:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
+// Global error handler
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled Promise Rejection:', err);
+  process.exit(1);
 });
 
-
-app.post('/addauthor', async (req, res) => {
-  const { authorName, authorEmail, topic, bio } = req.body;
-
-  if (!authorName || !authorEmail || !topic) {
-    return res.status(400).json({ message: "Author name, email, and topic are required" });
-  }
-
-  try {
-    const newAuthor = new Author({ authorName, authorEmail, topic, bio });
-    await newAuthor.save();
-    res.status(201).json({ message: "Author added successfully", newAuthor });
-
-  } catch (error) {
-    console.error("Error adding author:", error);
-    res.status(500).json({ message: "Server error", error });
-  }
-});
-
-// ✅ Get All Authors
-app.get('/authors', async (req, res) => {
-  try {
-    const authors = await Author.find();
-    res.status(200).json(authors);
-  } catch (error) {
-    console.error("Error fetching authors:", error);
-    res.status(500).json({ message: "Server error", error });
-  }
-});
-
-
-// Fetch author by topic
-// Fetch author by topic
-app.get('/authors/topic/:topic', async (req, res) => {
-  const { topic } = req.params;
-
-  try {
-    // Find the author whose topic matches the provided topic (case-insensitive)
-    const author = await Author.findOne({ topic: { $regex: new RegExp(topic, 'i') } });
-
-    if (author) {
-      res.status(200).json({ authorName: author.authorName });
-    } else {
-      res.status(404).json({ message: "No author found for this topic." });
-    }
-  } catch (error) {
-    console.error("Error fetching author by topic:", error);
-    res.status(500).json({ message: "Server error", error });
-  }
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  process.exit(1);
 });
 
 server.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`📱 Socket.IO server ready for connections`);
 });
