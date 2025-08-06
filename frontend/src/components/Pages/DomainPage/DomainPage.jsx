@@ -10,7 +10,8 @@ const DomainPage = () => {
 
   const getdomain = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/domains");
+      // ✅ Updated endpoint
+      const response = await axios.get("http://localhost:5000/api/domains");
       console.log(response.data);
       setDomains(response.data);
     } catch (error) {

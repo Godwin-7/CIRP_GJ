@@ -4,60 +4,59 @@ import axios from "axios";
 import "./ProjectPage.css";
 
 const ProjectPage = () => {
-  const { domainId, ideaId } = useParams();
+  const { ideaId } = useParams(); // Removed domainId from params
   const [idea, setIdea] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
-  const [author, setAuthor] = useState(null);
-  const [authorLoading, setAuthorLoading] = useState(true);
+
+  // Function to fetch comments for the specific idea
+  const fetchComments = async () => {
+    try {
+      const res = await axios.get(`http://localhost:5000/api/comments/idea/${ideaId}`);
+      setComments(res.data);
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+    }
+  };
 
   useEffect(() => {
     const fetchIdeaDetails = async () => {
       try {
-        const response = await axios.get(
-          `http://localhost:5000/domains/${domainId}/ideas/${ideaId}`
-        );
+        // ✅ Updated API endpoint to directly fetch idea by ID
+        const response = await axios.get(`http://localhost:5000/api/ideas/${ideaId}`);
         setIdea(response.data);
         setLoading(false);
-        
-        // After fetching idea, fetch matching author
-        if (response.data && response.data.topic) {
-          fetchAuthor(response.data.topic);
-        } else {
-          setAuthorLoading(false);
-        }
       } catch (error) {
         console.error("Error fetching idea details:", error);
         setError("Failed to load idea details. Please try again later.");
         setLoading(false);
-        setAuthorLoading(false);
-      }
-    };
-
-    const fetchAuthor = async (topic) => {
-      try {
-        const response = await axios.get(`http://localhost:5000/authors/topic/${topic}`);
-        if (response.data.authorName) {
-          setAuthor(response.data.authorName);
-        } else {
-          setAuthor(null);
-        }
-        setAuthorLoading(false);
-      } catch (error) {
-        console.error("Error fetching author:", error);
-        setAuthorLoading(false);
       }
     };
 
     fetchIdeaDetails();
-  }, [domainId, ideaId]);
+    fetchComments(); // Fetch comments when the page loads
+  }, [ideaId]);
 
-  const handleAddComment = () => {
+  const handleAddComment = async () => {
     if (newComment.trim()) {
-      setComments((prev) => [...prev, newComment]);
-      setNewComment("");
+      try {
+        const commentData = {
+          text: newComment,
+          idea: ideaId,
+          // You should get the user's ID from authentication context
+          // For now, let's use a placeholder
+          author: 'your_user_id_here' 
+        };
+        // ✅ New endpoint for adding a comment
+        await axios.post("http://localhost:5000/api/comments/create", commentData);
+        setNewComment("");
+        fetchComments(); // Re-fetch comments to show the new one
+      } catch (error) {
+        console.error("Error adding comment:", error);
+        alert("Failed to add comment.");
+      }
     }
   };
 
@@ -76,7 +75,7 @@ const ProjectPage = () => {
   return (
     <div className="project-page">
       <header className="project-header">
-        <h1>{idea.topic || "Untitled Project"}</h1>
+        <h1>{idea.title || "Untitled Project"}</h1>
         <p className="project-subtitle">
           {idea.description || "No description available."}
         </p>
@@ -86,28 +85,25 @@ const ProjectPage = () => {
         <div className="project-details">
           <div className="content-box">
             <h2>📄 Project Details</h2>
-            <p>{idea.details || "No details available."}</p>
+            <p>{idea.description || "No details available."}</p>
           </div>
-
+          
+          {/* ✅ Updated to use 'projectPdf' field */}
           <div className="content-box">
             <h2>📂 Document</h2>
-            {idea?.content ? (
+            {idea?.projectPdf ? (
               <iframe
-                src={`http://localhost:5000/uploads/${idea.content
-                  .split("\\")
-                  .pop()}#toolbar=0&view=FitH`}
+                src={`http://localhost:5000/${idea.projectPdf}`}
                 className="document-iframe"
                 title="Project Document"
               ></iframe>
             ) : (
               <p>No document available</p>
             )}
-            {idea?.content && (
+            {idea?.projectPdf && (
               <div className="download-container">
                 <a
-                  href={`http://localhost:5000/uploads/${idea.content
-                    .split("\\")
-                    .pop()}`}
+                  href={`http://localhost:5000/${idea.projectPdf}`}
                   download
                   className="download-button"
                 >
@@ -128,7 +124,8 @@ const ProjectPage = () => {
 
           <div className="content-box">
             <h2>✅ Status</h2>
-            <p>{idea.status || "In Progress"}</p>
+            {/* The new backend has a moderation field */}
+            <p>{idea.moderation || "Pending"}</p>
           </div>
 
           {/* Comments Section */}
@@ -147,9 +144,9 @@ const ProjectPage = () => {
 
             <div className="comment-list">
               {comments.length > 0 ? (
-                comments.map((comment, index) => (
-                  <div key={index} className="comment-card">
-                    {comment}
+                comments.map((comment) => (
+                  <div key={comment._id} className="comment-card">
+                    <strong>{comment.author}:</strong> {comment.text}
                   </div>
                 ))
               ) : (
@@ -160,36 +157,35 @@ const ProjectPage = () => {
         </div>
 
         <aside className="author-box">
-  <h2>👤 Author</h2>
-  {authorLoading ? (
-    <div className="author-loading">Loading author information...</div>
-  ) : author ? (
-    <div className="author-info">
-      <div className="author-avatar">
-        <img
-          src="https://via.placeholder.com/80"
-          alt={author}
-        />
-      </div>
-      <div className="author-text">
-        <h3>{author}</h3>
-      </div>
-    </div>
-  ) : (
-    <div className="author-info">
-      <div className="author-avatar">
-        <img
-          src="https://via.placeholder.com/80"
-          alt="Unknown Author"
-        />
-      </div>
-      <div className="author-text">
-        <h3>Unknown Author</h3>
-        <p>No author information available for this topic.</p>
-      </div>
-    </div>
-  )}
-</aside>
+          <h2>👤 Author</h2>
+          {idea.author ? (
+            <div className="author-info">
+              <div className="author-avatar">
+                <img
+                  src="https://via.placeholder.com/80"
+                  alt={idea.author.authorName}
+                />
+              </div>
+              <div className="author-text">
+                <h3>{idea.author.authorName}</h3>
+                <p>{idea.author.bio}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="author-info">
+              <div className="author-avatar">
+                <img
+                  src="https://via.placeholder.com/80"
+                  alt="Unknown Author"
+                />
+              </div>
+              <div className="author-text">
+                <h3>Unknown Author</h3>
+                <p>No author information available.</p>
+              </div>
+            </div>
+          )}
+        </aside>
       </div>
     </div>
   );

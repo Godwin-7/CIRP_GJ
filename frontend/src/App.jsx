@@ -19,6 +19,7 @@ import Chat from "./components/Pages/ChatPage/Chat";
 import Chatbot from "./components/Pages/HomePage/Chatbot/Chatbot";
 import ChatbotPage from "./components/Pages/HomePage/Chatbot/ChatbotPage";
 import AuthorApp from "./components/Author";
+
 function App() {
   return (
     <Router>
@@ -40,7 +41,10 @@ function App() {
           }
         />
         <Route path="/domains" element={<DomainPage />} />
-        <Route path="/domains/:title/:domainId" element={<TitlePage />} />
+        {/* ✅ Updated route to remove :title, as it's no longer needed */}
+        <Route path="/domains/:domainId" element={<TitlePage />} />
+        {/* This route can be simplified to just /ideas/:ideaId, but keeping for now
+            as it matches the previous nested structure */}
         <Route
           path="/domains/:domainId/ideas/:ideaId"
           element={<ProjectPage />}

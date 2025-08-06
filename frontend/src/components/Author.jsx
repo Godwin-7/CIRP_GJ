@@ -22,11 +22,13 @@ const AuthorApp = () => {
     e.preventDefault();
     try {
       if (editingId) {
-        await axios.put(`http://localhost:5000/authors/${editingId}`, formData);
+        // ✅ Updated update endpoint
+        await axios.put(`http://localhost:5000/api/authors/update/${editingId}`, formData);
         alert("Author updated successfully!");
         setEditingId(null);
       } else {
-        await axios.post("http://localhost:5000/addauthor", formData);
+        // ✅ Updated create endpoint
+        await axios.post("http://localhost:5000/api/authors/create", formData);
         alert("Author added successfully!");
       }
       fetchAuthors();
@@ -40,7 +42,8 @@ const AuthorApp = () => {
   // Fetch Authors
   const fetchAuthors = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/authors");
+      // ✅ Updated fetch endpoint
+      const res = await axios.get("http://localhost:5000/api/authors");
       setAuthors(res.data);
     } catch (error) {
       console.error("Error fetching authors:", error);
@@ -63,7 +66,8 @@ const AuthorApp = () => {
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this author?")) {
       try {
-        await axios.delete(`http://localhost:5000/authors/${id}`);
+        // ✅ Updated delete endpoint
+        await axios.delete(`http://localhost:5000/api/authors/delete/${id}`);
         alert("Author deleted successfully!");
         fetchAuthors();
       } catch (error) {

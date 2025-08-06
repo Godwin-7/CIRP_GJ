@@ -1,6 +1,7 @@
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios"; // Added axios import
 import "./TitlePage.css"; // Import the CSS file
 import Chat from "../ChatPage/Chat";
 
@@ -22,12 +23,12 @@ const TitlePage = () => {
   useEffect(() => {
     const fetchDomainData = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/domains/${domainId}`);
-        if (!res.ok) {
+        // ✅ Updated fetch URL using axios
+        const res = await axios.get(`http://localhost:5000/api/domains/${domainId}`);
+        if (res.status !== 200) {
           throw new Error("Failed to fetch domain data");
         }
-        const data = await res.json();
-        setDomain(data);
+        setDomain(res.data);
       } catch (err) {
         console.error("Error fetching domain:", err);
         setError(err.message);
@@ -88,7 +89,8 @@ const TitlePage = () => {
               className="topic-card"
               onClick={() => handleProject(idea._id)}
             >
-              <h2 className="topic-title">{idea.topic}</h2>
+              {/* Displaying idea title from the new backend data */}
+              <h2 className="topic-title">{idea.title}</h2> 
               <p className="topic-description">{idea.description}</p>
             </div>
           ))

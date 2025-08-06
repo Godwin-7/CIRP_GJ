@@ -48,8 +48,9 @@ const DomainAdder = () => {
     formDataToSend.append("topics", JSON.stringify(formData.topics)); // ✅ No change to how topics are sent
 
     try {
+      // ✅ Updated endpoint
       const response = await axios.post(
-        "http://localhost:5000/domainform", // ✅ Keeping your route intact
+        "http://localhost:5000/api/domains/create",
         formDataToSend,
         {
           headers: { "Content-Type": "multipart/form-data" },

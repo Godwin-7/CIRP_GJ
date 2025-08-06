@@ -4,24 +4,25 @@ import "./UserForm.css";
 import AuthorApp from "../../Author";
 
 const UserForm = () => {
-  const [Domain, setDomain] = useState([]);
+  const [domains, setDomains] = useState([]);
   const [selectedDomain, setSelectedDomain] = useState("");
-  const [topic, setTopic] = useState("");
+  const [title, setTitle] = useState(""); // Changed from 'topic'
   const [description, setDescription] = useState("");
   const [file, setFile] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formMessage, setFormMessage] = useState({ type: "", message: "" });
 
   useEffect(() => {
-    const fetchDomain = async () => {
+    const fetchDomains = async () => {
       try {
-        const domain = await axios.get("http://localhost:5000/domains");
-        setDomain(domain.data);
+        // ✅ Updated endpoint for fetching domains
+        const response = await axios.get("http://localhost:5000/api/domains");
+        setDomains(response.data);
       } catch (error) {
         console.error("Error fetching domains", error);
       }
     };
-    fetchDomain();
+    fetchDomains();
   }, []);
 
   const handleSubmit = async (e) => {
@@ -31,13 +32,14 @@ const UserForm = () => {
 
     const formData = new FormData();
     formData.append("domainId", selectedDomain);
-    formData.append("topic", topic);
+    formData.append("title", title); // Changed from 'topic'
     formData.append("description", description);
-    formData.append("content", file);
+    formData.append("projectPdf", file); // Changed from 'content'
 
     try {
+      // ✅ Updated endpoint for submitting an idea
       const response = await axios.post(
-        "http://localhost:5000/addidea",
+        "http://localhost:5000/api/ideas/create",
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
@@ -49,7 +51,7 @@ const UserForm = () => {
         message: "Your idea was submitted successfully!",
       });
       setSelectedDomain("");
-      setTopic("");
+      setTitle(""); // Changed from 'topic'
       setDescription("");
       setFile(null);
     } catch (err) {
@@ -88,21 +90,21 @@ const UserForm = () => {
               required
             >
               <option value="">Select a Domain</option>
-              {Domain.map((domains) => (
-                <option key={domains._id} value={domains._id}>
-                  {domains.title}
+              {domains.map((domain) => (
+                <option key={domain._id} value={domain._id}>
+                  {domain.title}
                 </option>
               ))}
             </select>
           </div>
 
           <div className="form-group">
-            <label>Topic</label>
+            <label>Title</label> {/* Changed from 'Topic' */}
             <input
               type="text"
-              placeholder="Enter your idea's topic"
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
+              placeholder="Enter your idea's title" // Updated placeholder
+              value={title} // Changed from 'topic'
+              onChange={(e) => setTitle(e.target.value)} // Changed from 'setTopic'
               required
             />
           </div>
