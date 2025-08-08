@@ -1,5 +1,4 @@
-// middleware/validation.js
-const { body, param, query } = require('express-validator');
+const { body, param, query, validationResult } = require('express-validator');
 
 // User validation
 exports.validateRegister = [
@@ -55,17 +54,25 @@ exports.validateChangePassword = [
     .withMessage('New password must contain at least one lowercase letter, one uppercase letter, and one number')
 ];
 
-// Domain validation
+// Domain validation with debug logging
 exports.validateDomain = [
   body('title')
     .trim()
     .isLength({ min: 3, max: 100 })
-    .withMessage('Domain title must be between 3 and 100 characters'),
+    .withMessage('Domain title must be between 3 and 100 characters')
+    .custom((value, { req }) => {
+      console.log('Validating title:', value); // Debug log
+      return true;
+    }),
   
   body('description')
     .trim()
     .isLength({ min: 10, max: 1000 })
-    .withMessage('Description must be between 10 and 1000 characters'),
+    .withMessage('Description must be between 10 and 1000 characters')
+    .custom((value, { req }) => {
+      console.log('Validating description length:', value?.length); // Debug log
+      return true;
+    }),
   
   body('category')
     .optional()
@@ -73,22 +80,63 @@ exports.validateDomain = [
     .withMessage('Invalid category'),
   
   body('topics')
-    .custom((value) => {
+    .custom((value, { req }) => {
+      console.log('Validating topics:', typeof value, value); // Debug log
+      
       try {
         const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+        
+        console.log('Parsed topics:', parsed); // Debug log
+        
         if (!parsed || typeof parsed !== 'object') {
           throw new Error('Topics must be an object');
         }
         
-        if (!Array.isArray(parsed.easy) || !Array.isArray(parsed.medium) || !Array.isArray(parsed.hard)) {
-          throw new Error('Topics must contain easy, medium, and hard arrays');
+        // Check if all required arrays exist
+        if (!parsed.hasOwnProperty('easy') || !parsed.hasOwnProperty('medium') || !parsed.hasOwnProperty('hard')) {
+          throw new Error('Topics must contain easy, medium, and hard properties');
         }
         
+        // Check if they are arrays
+        if (!Array.isArray(parsed.easy) || !Array.isArray(parsed.medium) || !Array.isArray(parsed.hard)) {
+          throw new Error('Topics easy, medium, and hard must be arrays');
+        }
+        
+        // Check if at least one array has content
+        const totalTopics = parsed.easy.length + parsed.medium.length + parsed.hard.length;
+        if (totalTopics === 0) {
+          throw new Error('At least one topic must be provided in any difficulty level');
+        }
+        
+        console.log('Topics validation passed. Total topics:', totalTopics); // Debug log
         return true;
+        
       } catch (error) {
-        throw new Error('Invalid topics format');
+        console.error('Topics validation error:', error.message); // Debug log
+        throw new Error(`Invalid topics format: ${error.message}`);
       }
-    })
+    }),
+  
+  // Middleware to handle validation results
+  (req, res, next) => {
+    console.log('Domain validation - Request body:', {
+      title: req.body.title,
+      description: req.body.description?.substring(0, 50) + '...',
+      topics: typeof req.body.topics,
+      hasFile: !!req.file
+    }); // Debug log
+    
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      console.log('Validation errors:', errors.array()); // Debug log
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+    next();
+  }
 ];
 
 // Idea validation

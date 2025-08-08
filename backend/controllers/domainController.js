@@ -54,23 +54,16 @@ exports.getAllDomains = async (req, res) => {
         return {
           ...domain.toObject(),
           ideaCount,
-          totalTopics: domain.totalTopics
+          totalTopics: domain.totalTopics,
+          // Fix the imageUrl property name to match frontend expectations
+          imageurl: domain.imageUrl
         };
       })
     );
 
-    res.json({
-      success: true,
-      data: {
-        domains: domainsWithStats,
-        pagination: {
-          current: parseInt(page),
-          total: Math.ceil(total / parseInt(limit)),
-          count: domains.length,
-          totalItems: total
-        }
-      }
-    });
+    // IMPORTANT: Return the domains array directly for compatibility with your frontend
+    // Your frontend expects response.data to be the domains array
+    res.json(domainsWithStats);
 
   } catch (error) {
     console.error('Get all domains error:', error);

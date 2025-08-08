@@ -1,13 +1,24 @@
-// middleware/auth.js
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key';
-
-// Verify JWT token
+// Authentication middleware
 exports.authenticate = async (req, res, next) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
+    // Get token from header
+    const authHeader = req.header('Authorization');
+    
+    console.log('Auth header:', authHeader); // Debug log
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        message: 'Access denied. No valid token provided.'
+      });
+    }
+
+    // Extract token
+    const token = authHeader.replace('Bearer ', '');
+    console.log('Extracted token:', token ? 'Token present' : 'No token'); // Debug log
     
     if (!token) {
       return res.status(401).json({
@@ -16,71 +27,125 @@ exports.authenticate = async (req, res, next) => {
       });
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const user = await User.findById(decoded.userId);
-
-    if (!user || !user.isActive) {
+    // Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('Decoded token:', { userId: decoded.userId, email: decoded.email }); // Debug log
+    
+    // Get user from database
+    const user = await User.findById(decoded.userId).select('-password');
+    
+    if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid token or user not active.'
+        message: 'Token is valid but user not found.'
       });
     }
 
-    req.userId = user._id;
+    if (!user.isActive) {
+      return res.status(401).json({
+        success: false,
+        message: 'User account is deactivated.'
+      });
+    }
+
+    // Add user info to request
+    req.userId = decoded.userId;
     req.user = user;
+    
+    console.log('Authentication successful for user:', user.username); // Debug log
     next();
+
   } catch (error) {
-    console.error('Authentication error:', error);
-    res.status(401).json({
+    console.error('Authentication error:', error.message); // Debug log
+    
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid token.'
+      });
+    }
+    
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({
+        success: false,
+        message: 'Token expired.'
+      });
+    }
+
+    return res.status(500).json({
       success: false,
-      message: 'Invalid token.'
+      message: 'Server error during authentication.'
     });
   }
 };
 
-// Optional authentication (doesn't fail if no token)
+// Optional authentication middleware
 exports.optionalAuth = async (req, res, next) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
+    const authHeader = req.header('Authorization');
     
-    if (token) {
-      const decoded = jwt.verify(token, JWT_SECRET);
-      const user = await User.findById(decoded.userId);
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return next(); // No token, continue without authentication
+    }
 
-      if (user && user.isActive) {
-        req.userId = user._id;
-        req.user = user;
-      }
+    const token = authHeader.replace('Bearer ', '');
+    
+    if (!token) {
+      return next(); // No token, continue without authentication
+    }
+
+    // Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Get user from database
+    const user = await User.findById(decoded.userId).select('-password');
+    
+    if (user && user.isActive) {
+      req.userId = decoded.userId;
+      req.user = user;
     }
     
     next();
+
   } catch (error) {
-    // Continue without authentication
+    // If token is invalid, continue without authentication
     next();
   }
 };
 
-// Admin check
-exports.requireAdmin = (req, res, next) => {
-  if (!req.user || !req.user.isAdmin) {
-    return res.status(403).json({
+// Admin authentication middleware
+exports.requireAdmin = async (req, res, next) => {
+  try {
+    // First authenticate the user
+    await exports.authenticate(req, res, () => {});
+    
+    if (!req.user || !req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Admin privileges required.'
+      });
+    }
+
+    next();
+
+  } catch (error) {
+    return res.status(500).json({
       success: false,
-      message: 'Access denied. Admin privileges required.'
+      message: 'Server error during admin authentication.'
     });
   }
-  next();
 };
 
-// Error handler
+// Error handling middleware
 exports.errorHandler = (err, req, res, next) => {
-  console.error('Error:', err);
+  console.error('Global error handler:', err);
 
   // Mongoose validation error
   if (err.name === 'ValidationError') {
     const errors = Object.values(err.errors).map(e => e.message);
     return res.status(400).json({
       success: false,
-      message: 'Validation failed',
+      message: 'Validation Error',
       errors
     });
   }
@@ -94,7 +159,7 @@ exports.errorHandler = (err, req, res, next) => {
     });
   }
 
-  // JWT error
+  // JWT errors
   if (err.name === 'JsonWebTokenError') {
     return res.status(401).json({
       success: false,
@@ -102,10 +167,17 @@ exports.errorHandler = (err, req, res, next) => {
     });
   }
 
-  // Default error
-  res.status(500).json({
+  if (err.name === 'TokenExpiredError') {
+    return res.status(401).json({
+      success: false,
+      message: 'Token expired'
+    });
+  }
+
+  // Default server error
+  res.status(err.status || 500).json({
     success: false,
-    message: 'Server error',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    message: err.message || 'Server Error',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 };

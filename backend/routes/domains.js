@@ -1,4 +1,3 @@
-// routes/domains.js
 const express = require('express');
 const router = express.Router();
 const domainController = require('../controllers/domainController');
@@ -20,6 +19,9 @@ router.get('/:domainId/stats', validateObjectId('domainId'), domainController.ge
 
 // Protected routes
 router.post('/', authenticate, uploadDomainImage, handleUploadErrors, validateDomain, domainController.createDomain);
+// ADD THIS LINE - the specific route your frontend is looking for
+router.post('/domainForm', authenticate, uploadDomainImage, handleUploadErrors, validateDomain, domainController.createDomain);
+
 router.put('/:domainId', authenticate, uploadDomainImage, handleUploadErrors, validateObjectId('domainId'), validateDomain, domainController.updateDomain);
 router.delete('/:domainId', authenticate, validateObjectId('domainId'), domainController.deleteDomain);
 
