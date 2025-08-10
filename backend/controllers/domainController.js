@@ -75,46 +75,58 @@ exports.getAllDomains = async (req, res) => {
   }
 };
 
-// Get domain by ID
+// Get domain by ID - FIXED VERSION
 exports.getDomainById = async (req, res) => {
   try {
     const { domainId } = req.params;
+    console.log('Fetching domain with ID:', domainId); // Debug log
 
     const domain = await Domain.findById(domainId)
       .populate('createdBy', 'username fullName profileImage bio')
       .populate('moderators', 'username fullName profileImage');
 
     if (!domain) {
+      console.log('Domain not found for ID:', domainId); // Debug log
       return res.status(404).json({
         success: false,
         message: 'Domain not found'
       });
     }
 
-    // Get associated ideas
+    console.log('Domain found:', domain.title); // Debug log
+
+    // ✅ CRITICAL FIX: Get associated ideas for this domain
     const ideas = await Idea.find({ 
       domain: domainId, 
       isActive: true,
-      isPublic: true 
+      isPublic: true,
+      moderationStatus: 'approved'  // Only approved ideas
     })
-    .populate('author', 'authorName profileImage')
+    .populate('author', 'authorName profileImage authorEmail')
     .populate('createdBy', 'username fullName profileImage')
     .sort({ createdAt: -1 });
 
+    console.log('Ideas found for domain:', ideas.length); // Debug log
+    
     // Update view count
     domain.stats.totalViews += 1;
     await domain.save();
 
-    res.json({
-      success: true,
-      data: {
-        domain: {
-          ...domain.toObject(),
-          ideas,
-          totalTopics: domain.totalTopics
-        }
-      }
-    });
+    // ✅ CRITICAL FIX: Return the domain with the correct structure
+    // Your frontend expects the ideas to be directly accessible on the domain object
+    const responseData = {
+      ...domain.toObject(),
+      ideas: ideas, // Add ideas array to the domain object
+      totalTopics: domain.totalTopics,
+      imageurl: domain.imageUrl, // Frontend expects 'imageurl' not 'imageUrl'
+      ideaCount: ideas.length
+    };
+
+    console.log('Sending response with ideas count:', responseData.ideas?.length); // Debug log
+
+    // Return domain data directly (not wrapped in success/data structure)
+    // This matches what your frontend expects
+    res.json(responseData);
 
   } catch (error) {
     console.error('Get domain by ID error:', error);
