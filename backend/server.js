@@ -123,123 +123,230 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://csundar993:S1RjXYDtC7
 .then(() => console.log("✅ MongoDB connected successfully"))
 .catch((err) => console.error("❌ MongoDB connection error:", err));
 
-// Socket.IO for real-time chat
+// Socket.IO for real-time chat - FIXED VERSION
 const Message = require("./models/Message");
 
 io.on("connection", (socket) => {
   console.log("👤 User connected:", socket.id);
 
-  // ✅ FIXED: Send chat history when user connects
+  // Send global chat history when user connects
   socket.on("getMessages", async () => {
     try {
       console.log("Fetching global messages for user:", socket.id);
       
-      // Get global messages (not domain-specific)
+      // Get global messages (improved query)
       const messages = await Message.find({
         $or: [
           { messageType: 'global' },
           { messageType: { $exists: false } }, // Legacy messages without messageType
-          { domainId: null },
-          { domainId: { $exists: false } }
-        ]
+          { 
+            $and: [
+              { domainId: { $in: [null, undefined] } },
+              { messageType: { $ne: 'domain' } }
+            ]
+          }
+        ],
+        isDeleted: { $ne: true },
+        status: { $ne: 'flagged' }
       })
-      .sort({ timestamp: -1 })
+      .sort({ timestamp: -1, createdAt: -1 })
       .limit(100)
-      .populate('userId', 'username fullName profileImage');
+      .populate('userId', 'username fullName profileImage')
+      .lean(); // Use lean() for better performance
       
       console.log(`Found ${messages.length} global messages`);
       
+      // Format messages for frontend compatibility
+      const formattedMessages = messages.map(msg => ({
+        _id: msg._id,
+        username: msg.username,
+        email: msg.email,
+        message: msg.message || msg.content,
+        content: msg.content || msg.message,
+        timestamp: msg.timestamp || msg.createdAt,
+        messageType: msg.messageType || 'global',
+        userId: msg.userId
+      }));
+      
       // Send messages in chronological order (oldest first)
-      socket.emit("chatHistory", messages.reverse());
+      socket.emit("chatHistory", formattedMessages.reverse());
     } catch (error) {
       console.error("Error fetching chat history:", error);
       socket.emit("chatHistory", []);
     }
   });
 
-  // ✅ FIXED: Handle new global message
+  // Handle new global message
   socket.on("sendMessage", async ({ username, email, message, domainId }) => {
     try {
-      console.log("Received message:", { username, email, message: message?.substring(0, 50) });
+      console.log("Received global message:", { username, email, message: message?.substring(0, 50) });
       
       if (!message || message.trim() === '') {
         console.log("Empty message, ignoring");
+        socket.emit("messageError", { error: "Message cannot be empty" });
+        return;
+      }
+
+      if (!username || !email) {
+        console.log("Missing username or email");
+        socket.emit("messageError", { error: "Username and email are required" });
         return;
       }
 
       const newMessage = new Message({ 
-        username: username || 'Anonymous', 
-        email: email || 'anonymous@example.com', 
-        message: message.trim(), 
+        username: username.trim(), 
+        email: email.trim().toLowerCase(), 
+        message: message.trim(),
+        content: message.trim(), // Set both for compatibility
         messageType: domainId ? 'domain' : 'global',
         domainId: domainId || null,
         timestamp: new Date()
       });
       
-      await newMessage.save();
-      console.log("Message saved successfully");
+      const savedMessage = await newMessage.save();
+      console.log("Global message saved successfully:", savedMessage._id);
+      
+      // Format message for broadcast
+      const broadcastMessage = {
+        _id: savedMessage._id,
+        username: savedMessage.username,
+        email: savedMessage.email,
+        message: savedMessage.message,
+        content: savedMessage.content,
+        timestamp: savedMessage.timestamp,
+        messageType: savedMessage.messageType || 'global',
+        userId: savedMessage.userId
+      };
       
       // Broadcast message to all clients for global chat
       if (!domainId) {
-        io.emit("receiveMessage", newMessage);
+        console.log("Broadcasting global message to all clients");
+        io.emit("receiveMessage", broadcastMessage);
       } else {
         // Broadcast to domain room
-        io.to(`domain_${domainId}`).emit("receiveDomainMessage", newMessage);
+        console.log(`Broadcasting domain message to domain_${domainId}`);
+        io.to(`domain_${domainId}`).emit("receiveDomainMessage", broadcastMessage);
       }
     } catch (error) {
-      console.error("Error saving message:", error);
+      console.error("Error saving global message:", error);
       socket.emit("messageError", { error: "Failed to send message" });
     }
   });
 
   // Join domain-specific room for domain chat
   socket.on("joinDomain", (domainId) => {
-    socket.join(`domain_${domainId}`);
-    console.log(`User ${socket.id} joined domain ${domainId}`);
+    if (domainId) {
+      socket.join(`domain_${domainId}`);
+      console.log(`User ${socket.id} joined domain ${domainId}`);
+    }
   });
 
-  // ✅ FIXED: Send domain-specific message
+  // Handle domain-specific message
   socket.on("sendDomainMessage", async ({ username, email, message, domainId }) => {
     try {
-      if (!message || message.trim() === '') return;
+      console.log("Received domain message:", { username, email, message: message?.substring(0, 50), domainId });
+      
+      if (!message || message.trim() === '') {
+        socket.emit("messageError", { error: "Message cannot be empty" });
+        return;
+      }
+
+      if (!username || !email) {
+        socket.emit("messageError", { error: "Username and email are required" });
+        return;
+      }
+
+      if (!domainId) {
+        socket.emit("messageError", { error: "Domain ID is required for domain messages" });
+        return;
+      }
       
       const newMessage = new Message({ 
-        username: username || 'Anonymous', 
-        email: email || 'anonymous@example.com', 
-        message: message.trim(), 
+        username: username.trim(), 
+        email: email.trim().toLowerCase(), 
+        message: message.trim(),
+        content: message.trim(),
         messageType: 'domain',
         domainId,
         timestamp: new Date()
       });
       
-      await newMessage.save();
+      const savedMessage = await newMessage.save();
+      console.log("Domain message saved successfully:", savedMessage._id);
+      
+      // Format message for broadcast
+      const broadcastMessage = {
+        _id: savedMessage._id,
+        username: savedMessage.username,
+        email: savedMessage.email,
+        message: savedMessage.message,
+        content: savedMessage.content,
+        timestamp: savedMessage.timestamp,
+        messageType: savedMessage.messageType,
+        domainId: savedMessage.domainId,
+        userId: savedMessage.userId
+      };
       
       // Broadcast to domain room
-      io.to(`domain_${domainId}`).emit("receiveDomainMessage", newMessage);
+      io.to(`domain_${domainId}`).emit("receiveDomainMessage", broadcastMessage);
     } catch (error) {
       console.error("Error saving domain message:", error);
+      socket.emit("messageError", { error: "Failed to send domain message" });
     }
   });
 
   // Handle getting domain messages
   socket.on("getDomainMessages", async (domainId) => {
     try {
+      if (!domainId) {
+        console.log("No domain ID provided for getDomainMessages");
+        socket.emit("domainChatHistory", []);
+        return;
+      }
+
+      console.log("Fetching domain messages for domain:", domainId);
+      
       const messages = await Message.find({ 
         messageType: 'domain', 
-        domainId 
+        domainId,
+        isDeleted: { $ne: true },
+        status: { $ne: 'flagged' }
       })
-      .sort({ timestamp: -1 })
+      .sort({ timestamp: -1, createdAt: -1 })
       .limit(100)
-      .populate('userId', 'username fullName profileImage');
+      .populate('userId', 'username fullName profileImage')
+      .lean();
       
-      socket.emit("domainChatHistory", messages.reverse());
+      console.log(`Found ${messages.length} domain messages for domain ${domainId}`);
+      
+      // Format messages for frontend
+      const formattedMessages = messages.map(msg => ({
+        _id: msg._id,
+        username: msg.username,
+        email: msg.email,
+        message: msg.message || msg.content,
+        content: msg.content || msg.message,
+        timestamp: msg.timestamp || msg.createdAt,
+        messageType: msg.messageType,
+        domainId: msg.domainId,
+        userId: msg.userId
+      }));
+      
+      socket.emit("domainChatHistory", formattedMessages.reverse());
     } catch (error) {
       console.error("Error fetching domain chat history:", error);
+      socket.emit("domainChatHistory", []);
     }
   });
 
+  // Handle user disconnect
   socket.on("disconnect", () => {
     console.log("👤 User disconnected:", socket.id);
+  });
+
+  // Handle connection errors
+  socket.on("error", (error) => {
+    console.error("Socket error for user", socket.id, ":", error);
   });
 });
 

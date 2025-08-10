@@ -4,47 +4,120 @@ import { useParams } from "react-router-dom";
 import axios from "axios";
 import "./ProjectPage.css";
 
-const Comment = ({ comment, onAddReply }) => {
+const Comment = ({ comment, onAddReply, level = 0 }) => {
   const [replyText, setReplyText] = useState("");
   const [showReplyInput, setShowReplyInput] = useState(false);
+  const [showReplies, setShowReplies] = useState(false);
+  const [replies, setReplies] = useState([]);
+  const [loadingReplies, setLoadingReplies] = useState(false);
+
+  // Load replies when "View Replies" is clicked
+  const loadReplies = async () => {
+    if (replies.length === 0 && comment.replyCount > 0) {
+      setLoadingReplies(true);
+      try {
+        const response = await axios.get(`http://localhost:5000/api/comments/thread/${comment._id}`);
+        if (response.data.success && response.data.data.comment.replies) {
+          setReplies(response.data.data.comment.replies);
+        }
+      } catch (error) {
+        console.error("Error loading replies:", error);
+      }
+      setLoadingReplies(false);
+    }
+    setShowReplies(!showReplies);
+  };
 
   const handleReplySubmit = async (e) => {
     e.preventDefault();
     if (replyText.trim()) {
-      onAddReply(comment._id, replyText);
+      await onAddReply(comment._id, replyText);
       setReplyText("");
       setShowReplyInput(false);
+      // Refresh replies after adding a new one
+      if (showReplies) {
+        setReplies([]);
+        loadReplies();
+      }
     }
   };
 
   return (
-    <div className="comment-card">
-      <strong>{comment.username || comment.authorName}:</strong> {comment.content || comment.text}
-      <button onClick={() => setShowReplyInput(!showReplyInput)}>
-        Reply
-      </button>
+    <div className={`comment-card ${level > 0 ? 'comment-reply' : ''}`}>
+      <div className="comment-header">
+        <strong>{comment.author?.username || comment.authorName}:</strong>
+        <span className="comment-time">
+          {new Date(comment.createdAt).toLocaleDateString()}
+        </span>
+      </div>
+      
+      <div className="comment-content">
+        {comment.content || comment.text}
+      </div>
+      
+      <div className="comment-actions">
+        <button 
+          className="reply-btn"
+          onClick={() => setShowReplyInput(!showReplyInput)}
+        >
+          Reply
+        </button>
+        
+        {/* Show "View Replies" button only for main comments with replies */}
+        {level === 0 && comment.replyCount > 0 && (
+          <button 
+            className="view-replies-btn"
+            onClick={loadReplies}
+            disabled={loadingReplies}
+          >
+            {loadingReplies ? 'Loading...' : 
+             showReplies ? 'Hide Replies' : 
+             `View Replies (${comment.replyCount})`}
+          </button>
+        )}
+      </div>
+
+      {/* Reply Input */}
       {showReplyInput && (
         <form onSubmit={handleReplySubmit} className="reply-form">
           <textarea
             value={replyText}
             onChange={(e) => setReplyText(e.target.value)}
             placeholder="Write a reply..."
-          ></textarea>
-          <button type="submit">Submit Reply</button>
+            rows="3"
+          />
+          <div className="reply-form-actions">
+            <button type="submit" className="submit-reply-btn">Submit Reply</button>
+            <button 
+              type="button" 
+              onClick={() => setShowReplyInput(false)}
+              className="cancel-reply-btn"
+            >
+              Cancel
+            </button>
+          </div>
         </form>
       )}
-      <div className="comment-replies">
-        {comment.replies && comment.replies.map((reply) => (
-          <Comment key={reply._id} comment={reply} onAddReply={onAddReply} />
-        ))}
-      </div>
+
+      {/* Show Replies (YouTube style - only when expanded) */}
+      {showReplies && (
+        <div className="comment-replies">
+          {replies.map((reply) => (
+            <Comment 
+              key={reply._id} 
+              comment={reply} 
+              onAddReply={onAddReply}
+              level={level + 1}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };
 
 const ProjectPage = () => {
-  // ✅ FIXED: Get ideaId from the correct URL parameter
-  const { domainId, ideaId } = useParams(); // Changed from just ideaId
+  const { domainId, ideaId } = useParams();
   const [idea, setIdea] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -53,8 +126,8 @@ const ProjectPage = () => {
 
   const fetchComments = async () => {
     try {
-      // ✅ FIXED: Use the correct API endpoint structure
-      const res = await axios.get(`http://localhost:5000/api/comments/idea/${ideaId}`);
+      // Only fetch root comments (no replies)
+      const res = await axios.get(`http://localhost:5000/api/comments/idea/${ideaId}?includeReplies=false`);
       setComments(res.data.data ? res.data.data.comments : res.data);
     } catch (error) {
       console.error("Error fetching comments:", error);
@@ -64,13 +137,11 @@ const ProjectPage = () => {
   useEffect(() => {
     const fetchIdeaDetails = async () => {
       try {
-        console.log('Fetching idea with ID:', ideaId); // Debug log
+        console.log('Fetching idea with ID:', ideaId);
         
-        // ✅ FIXED: Use the correct API endpoint
         const response = await axios.get(`http://localhost:5000/api/ideas/${ideaId}`);
-        console.log('Idea response:', response.data); // Debug log
+        console.log('Idea response:', response.data);
         
-        // ✅ FIXED: Handle different response formats
         const ideaData = response.data.data ? response.data.data.idea : response.data;
         setIdea(ideaData);
         setLoading(false);
@@ -96,7 +167,6 @@ const ProjectPage = () => {
           parentComment: parentId
         };
         
-        // ✅ FIXED: Use the correct API endpoint with proper headers
         await axios.post(`http://localhost:5000/api/comments/idea/${ideaId}`, commentData, {
           headers: {
             'Authorization': token ? `Bearer ${token}` : '',
@@ -105,7 +175,7 @@ const ProjectPage = () => {
         });
         
         setNewComment("");
-        fetchComments();
+        fetchComments(); // Refresh comments after adding
       } catch (error) {
         console.error("Error adding comment:", error);
         alert("Failed to add comment. Please make sure you're logged in.");
@@ -121,14 +191,12 @@ const ProjectPage = () => {
         return;
       }
 
-      // ✅ FIXED: Correct API endpoint and headers
       const response = await axios.post(`http://localhost:5000/api/ideas/${ideaId}/like`, {}, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
       
-      // ✅ FIXED: Handle different response formats
       const updatedIdea = response.data.data ? response.data.data.idea : response.data;
       setIdea(prevIdea => ({
         ...prevIdea,
@@ -166,7 +234,6 @@ const ProjectPage = () => {
             <h2>📄 Project Details</h2>
             <p>{idea.description}</p>
             
-            {/* ✅ FIXED: Detailed description section */}
             {idea.detailedDescription && (
               <div className="detailed-description">
                 <h3>Detailed Description</h3>
@@ -174,7 +241,6 @@ const ProjectPage = () => {
               </div>
             )}
             
-            {/* ✅ FIXED: Using correct image field names */}
             {idea.projectImage && (
               <div className="project-images">
                 <h3>Main Image</h3>
@@ -208,7 +274,6 @@ const ProjectPage = () => {
               </div>
             )}
             
-            {/* ✅ FIXED: Tags display */}
             {idea.tags && idea.tags.length > 0 && (
               <div className="project-tags">
                 <h3>Tags</h3>
@@ -220,7 +285,6 @@ const ProjectPage = () => {
               </div>
             )}
             
-            {/* ✅ FIXED: Required skills display */}
             {idea.requiredSkills && idea.requiredSkills.length > 0 && (
               <div className="required-skills">
                 <h3>Required Skills</h3>
@@ -234,7 +298,6 @@ const ProjectPage = () => {
               </div>
             )}
             
-            {/* ✅ FIXED: Related links */}
             {idea.relatedLinks && idea.relatedLinks.length > 0 && (
               <div className="related-links">
                 <h3>Related Links</h3>
@@ -251,7 +314,6 @@ const ProjectPage = () => {
               </div>
             )}
             
-            {/* ✅ FIXED: PDF document */}
             {idea.projectPdf && (
               <div className="research-papers">
                 <h3>Project Document</h3>
@@ -301,14 +363,21 @@ const ProjectPage = () => {
               onChange={(e) => setNewComment(e.target.value)}
               placeholder="Add a comment..."
               className="comment-input"
-            ></textarea>
+              rows="4"
+            />
             <button onClick={() => handleAddComment(null, newComment)} className="add-comment-button">
               Add Comment
             </button>
+            
             <div className="comment-list">
               {comments.length > 0 ? (
                 comments.map((comment) => (
-                  <Comment key={comment._id} comment={comment} onAddReply={handleAddComment} />
+                  <Comment 
+                    key={comment._id} 
+                    comment={comment} 
+                    onAddReply={handleAddComment}
+                    level={0}
+                  />
                 ))
               ) : (
                 <p>No comments yet.</p>

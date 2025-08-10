@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import io from "socket.io-client";
 import "./Chat.css";
 
-const Chat = () => {
+const Chat = ({ domainId = null }) => {
   const [message, setMessage] = useState("");
   const [chat, setChat] = useState([]);
   const [username, setUsername] = useState("");
@@ -12,14 +12,14 @@ const Chat = () => {
   const chatBoxRef = useRef(null);
 
   useEffect(() => {
-    // Fetch user data from localStorage
+    // Get user data from localStorage or use defaults
     const storedUsername = localStorage.getItem("username") || "Guest";
     const storedEmail = localStorage.getItem("email") || "guest@example.com";
 
     setUsername(storedUsername);
     setEmail(storedEmail);
 
-    // ✅ FIXED: Create socket connection properly
+    // Create socket connection
     const newSocket = io("http://localhost:5000", {
       transports: ["websocket", "polling"],
       autoConnect: true,
@@ -31,8 +31,15 @@ const Chat = () => {
     newSocket.on("connect", () => {
       console.log("Connected to socket server");
       setIsConnected(true);
-      // ✅ FIXED: Get global messages instead of just "getMessages"
-      newSocket.emit("getMessages");
+      
+      // Join domain room if domainId is provided
+      if (domainId) {
+        newSocket.emit("joinDomain", domainId);
+        newSocket.emit("getDomainMessages", domainId);
+      } else {
+        // Get global messages
+        newSocket.emit("getMessages");
+      }
     });
 
     newSocket.on("disconnect", () => {
@@ -45,16 +52,68 @@ const Chat = () => {
       setIsConnected(false);
     });
 
-    // ✅ FIXED: Listen for chat history
+    // Listen for chat history (global)
     newSocket.on("chatHistory", (messages) => {
-      console.log("Received chat history:", messages);
-      setChat(Array.isArray(messages) ? messages : []);
+      console.log("Received global chat history:", messages);
+      if (Array.isArray(messages)) {
+        setChat(messages.map(msg => ({
+          _id: msg._id,
+          username: msg.username,
+          message: msg.message || msg.content,
+          timestamp: msg.timestamp || msg.createdAt,
+          messageType: msg.messageType || 'global'
+        })));
+      }
     });
 
-    // ✅ FIXED: Listen for new messages
+    // Listen for domain chat history
+    newSocket.on("domainChatHistory", (messages) => {
+      console.log("Received domain chat history:", messages);
+      if (Array.isArray(messages)) {
+        setChat(messages.map(msg => ({
+          _id: msg._id,
+          username: msg.username,
+          message: msg.message || msg.content,
+          timestamp: msg.timestamp || msg.createdAt,
+          messageType: msg.messageType || 'domain'
+        })));
+      }
+    });
+
+    // Listen for new global messages
     newSocket.on("receiveMessage", (newMessage) => {
-      console.log("Received new message:", newMessage);
-      setChat((prevChat) => [...prevChat, newMessage]);
+      console.log("Received new global message:", newMessage);
+      if (!domainId) { // Only add to chat if we're in global mode
+        const formattedMessage = {
+          _id: newMessage._id,
+          username: newMessage.username,
+          message: newMessage.message || newMessage.content,
+          timestamp: newMessage.timestamp || newMessage.createdAt,
+          messageType: newMessage.messageType || 'global'
+        };
+        setChat(prevChat => [...prevChat, formattedMessage]);
+      }
+    });
+
+    // Listen for new domain messages
+    newSocket.on("receiveDomainMessage", (newMessage) => {
+      console.log("Received new domain message:", newMessage);
+      if (domainId && newMessage.domainId === domainId) {
+        const formattedMessage = {
+          _id: newMessage._id,
+          username: newMessage.username,
+          message: newMessage.message || newMessage.content,
+          timestamp: newMessage.timestamp || newMessage.createdAt,
+          messageType: newMessage.messageType || 'domain'
+        };
+        setChat(prevChat => [...prevChat, formattedMessage]);
+      }
+    });
+
+    // Listen for message errors
+    newSocket.on("messageError", (error) => {
+      console.error("Message error:", error);
+      alert("Failed to send message: " + error.error);
     });
 
     setSocket(newSocket);
@@ -64,7 +123,7 @@ const Chat = () => {
       newSocket.removeAllListeners();
       newSocket.disconnect();
     };
-  }, []);
+  }, [domainId]);
 
   // Auto-scroll to the latest message whenever chat updates
   useEffect(() => {
@@ -75,15 +134,23 @@ const Chat = () => {
 
   const sendMessage = () => {
     if (message.trim() !== "" && isConnected && socket) {
-      console.log("Sending message:", { username, email, message });
+      console.log("Sending message:", { username, email, message, domainId });
       
-      // ✅ FIXED: Use the existing socket connection
-      socket.emit("sendMessage", { 
-        username, 
-        email, 
+      const messageData = {
+        username,
+        email,
         message: message.trim(),
+        domainId: domainId || null,
         timestamp: new Date()
-      });
+      };
+
+      if (domainId) {
+        // Send domain-specific message
+        socket.emit("sendDomainMessage", messageData);
+      } else {
+        // Send global message
+        socket.emit("sendMessage", messageData);
+      }
       
       setMessage("");
     } else {
@@ -103,10 +170,23 @@ const Chat = () => {
     }
   };
 
+  const formatTimestamp = (timestamp) => {
+    if (!timestamp) return "";
+    const date = new Date(timestamp);
+    return date.toLocaleString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
   return (
     <div className="chat-container">
       <div className="chat-header">
-        <h2 className="text-black text-3xl">Global Chat</h2>
+        <h2 className="text-black text-3xl">
+          {domainId ? "Domain Chat" : "Global Chat"}
+        </h2>
         <div className="connection-status">
           <span className={`status-indicator ${isConnected ? 'connected' : 'disconnected'}`}>
             {isConnected ? '🟢 Connected' : '🔴 Disconnected'}
@@ -117,11 +197,11 @@ const Chat = () => {
       <div className="chat-box" ref={chatBoxRef}>
         {chat.length > 0 ? (
           chat.map((msg, index) => (
-            <div key={index} className="message">
+            <div key={msg._id || index} className="message">
               <div className="message-header">
                 <strong className="username">{msg.username}</strong>
                 <small className="timestamp">
-                  {new Date(msg.timestamp).toLocaleString()}
+                  {formatTimestamp(msg.timestamp)}
                 </small>
               </div>
               <div className="message-content">{msg.message}</div>
@@ -140,7 +220,7 @@ const Chat = () => {
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Type your message... (Press Enter to send)"
+            placeholder={`Type your message in ${domainId ? 'domain' : 'global'} chat... (Press Enter to send)`}
             rows="2"
             disabled={!isConnected}
           />
@@ -154,7 +234,7 @@ const Chat = () => {
         </div>
         <div className="chat-info">
           <small>
-            Chatting as: <strong>{username}</strong> 
+            Chatting as: <strong>{username}</strong> in {domainId ? 'Domain' : 'Global'} chat
             {!isConnected && " (Trying to reconnect...)"}
           </small>
         </div>

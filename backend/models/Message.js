@@ -1,10 +1,14 @@
 const mongoose = require("mongoose");
 
 const messageSchema = new mongoose.Schema({
-  // Basic message info
+  // Basic message info - supporting both old and new formats
   content: {
     type: String,
-    required: true,
+    trim: true,
+    maxlength: 1000
+  },
+  message: { // Legacy field for backward compatibility
+    type: String,
     trim: true,
     maxlength: 1000
   },
@@ -45,6 +49,12 @@ const messageSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     default: null
+  },
+  
+  // Legacy timestamp field
+  timestamp: {
+    type: Date,
+    default: Date.now
   },
   
   // Message features
@@ -132,7 +142,7 @@ const messageSchema = new mongoose.Schema({
       ref: 'User'
     },
     username: String,
-    position: Number // position in the message where mention occurs
+    position: Number
   }],
   
   // Attachments
@@ -180,29 +190,49 @@ const messageSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// Pre-save middleware to ensure content compatibility
+messageSchema.pre('save', function(next) {
+  // If message field is set but content is not, copy it
+  if (this.message && !this.content) {
+    this.content = this.message;
+  }
+  // If content field is set but message is not, copy it for backward compatibility
+  if (this.content && !this.message) {
+    this.message = this.content;
+  }
+  
+  // Ensure we have at least one content field
+  if (!this.content && !this.message) {
+    return next(new Error('Message content is required'));
+  }
+  
+  // Update reaction counts
+  this.reactions.forEach(reaction => {
+    reaction.count = reaction.users.length;
+  });
+  
+  next();
+});
+
 // Virtual for formatted timestamp
 messageSchema.virtual('formattedTime').get(function() {
-  return this.createdAt.toLocaleString();
+  const timestamp = this.timestamp || this.createdAt;
+  return timestamp ? timestamp.toLocaleString() : '';
 });
 
 // Virtual for time ago
 messageSchema.virtual('timeAgo').get(function() {
+  const timestamp = this.timestamp || this.createdAt;
+  if (!timestamp) return '';
+  
   const now = new Date();
-  const diffTime = Math.abs(now - this.createdAt);
+  const diffTime = Math.abs(now - timestamp);
   const diffMinutes = Math.ceil(diffTime / (1000 * 60));
   
   if (diffMinutes < 1) return 'Just now';
   if (diffMinutes < 60) return `${diffMinutes}m ago`;
   if (diffMinutes < 1440) return `${Math.floor(diffMinutes / 60)}h ago`;
   return `${Math.floor(diffMinutes / 1440)}d ago`;
-});
-
-// Update reaction counts before saving
-messageSchema.pre('save', function(next) {
-  this.reactions.forEach(reaction => {
-    reaction.count = reaction.users.length;
-  });
-  next();
 });
 
 // Instance method to add reaction
@@ -218,35 +248,33 @@ messageSchema.methods.addReaction = function(emoji, userId, username) {
     this.reactions.push(reaction);
   }
   
-  // Check if user already reacted with this emoji
   const existingReaction = reaction.users.find(u => u.userId.toString() === userId.toString());
   
   if (existingReaction) {
-    // Remove reaction
     reaction.users.pull(existingReaction._id);
     if (reaction.users.length === 0) {
       this.reactions.pull(reaction._id);
     }
-    return false; // removed reaction
+    return false;
   } else {
-    // Add reaction
     reaction.users.push({
       userId,
       username
     });
-    return true; // added reaction
+    return true;
   }
 };
 
 // Instance method to edit message
 messageSchema.methods.editMessage = function(newContent) {
-  if (this.content !== newContent) {
-    // Store edit history
+  const oldContent = this.content || this.message;
+  if (oldContent !== newContent) {
     this.editHistory.push({
-      content: this.content
+      content: oldContent
     });
     
     this.content = newContent;
+    this.message = newContent; // Keep both for compatibility
     this.isEdited = true;
   }
   
@@ -260,6 +288,7 @@ messageSchema.methods.softDelete = function(deletedBy = null) {
   this.deletedBy = deletedBy;
   this.status = 'deleted';
   this.content = '[Message deleted]';
+  this.message = '[Message deleted]';
   
   return this.save();
 };
@@ -275,7 +304,6 @@ messageSchema.methods.addFlag = function(userId, reason, description = '') {
       description
     });
     
-    // Auto-flag if too many reports
     if (this.flags.length >= 3) {
       this.status = 'flagged';
     }
@@ -287,12 +315,17 @@ messageSchema.methods.addFlag = function(userId, reason, description = '') {
 // Static method to get global chat messages
 messageSchema.statics.getGlobalMessages = function(limit = 50, skip = 0) {
   return this.find({
-    messageType: 'global',
+    $or: [
+      { messageType: 'global' },
+      { messageType: { $exists: false } }, // Legacy messages
+      { domainId: null },
+      { domainId: { $exists: false } }
+    ],
     isDeleted: false,
     status: { $ne: 'flagged' }
   })
   .populate('userId', 'username fullName profileImage')
-  .sort({ createdAt: -1 })
+  .sort({ timestamp: -1, createdAt: -1 })
   .limit(limit)
   .skip(skip);
 };
@@ -307,7 +340,7 @@ messageSchema.statics.getDomainMessages = function(domainId, limit = 50, skip = 
   })
   .populate('userId', 'username fullName profileImage')
   .populate('domainId', 'title')
-  .sort({ createdAt: -1 })
+  .sort({ timestamp: -1, createdAt: -1 })
   .limit(limit)
   .skip(skip);
 };
@@ -324,7 +357,7 @@ messageSchema.statics.getPrivateMessages = function(userId1, userId2, limit = 50
   })
   .populate('userId', 'username fullName profileImage')
   .populate('recipient', 'username fullName profileImage')
-  .sort({ createdAt: 1 })
+  .sort({ timestamp: 1, createdAt: 1 })
   .limit(limit)
   .skip(skip);
 };
@@ -333,7 +366,10 @@ messageSchema.statics.getPrivateMessages = function(userId1, userId2, limit = 50
 messageSchema.statics.searchMessages = function(query, filters = {}, options = {}) {
   const searchRegex = new RegExp(query, 'i');
   const filter = {
-    content: searchRegex,
+    $or: [
+      { content: searchRegex },
+      { message: searchRegex } // Search both fields
+    ],
     isDeleted: false,
     status: { $ne: 'flagged' },
     ...filters
@@ -342,7 +378,7 @@ messageSchema.statics.searchMessages = function(query, filters = {}, options = {
   return this.find(filter)
     .populate('userId', 'username fullName profileImage')
     .populate('domainId', 'title')
-    .sort(options.sort || { createdAt: -1 })
+    .sort(options.sort || { timestamp: -1, createdAt: -1 })
     .limit(options.limit || 20)
     .skip(options.skip || 0);
 };
@@ -363,11 +399,11 @@ messageSchema.statics.markAsRead = function(messageIds, userId) {
 };
 
 // Indexes for better performance
-messageSchema.index({ messageType: 1, createdAt: -1 });
-messageSchema.index({ domainId: 1, createdAt: -1 });
-messageSchema.index({ userId: 1, createdAt: -1 });
+messageSchema.index({ messageType: 1, timestamp: -1, createdAt: -1 });
+messageSchema.index({ domainId: 1, timestamp: -1, createdAt: -1 });
+messageSchema.index({ userId: 1, timestamp: -1, createdAt: -1 });
 messageSchema.index({ recipient: 1, isRead: 1 });
-messageSchema.index({ content: 'text' });
+messageSchema.index({ content: 'text', message: 'text' });
 messageSchema.index({ status: 1, isDeleted: 1 });
 messageSchema.index({ threadId: 1 });
 
