@@ -79,53 +79,72 @@ exports.getAllDomains = async (req, res) => {
 exports.getDomainById = async (req, res) => {
   try {
     const { domainId } = req.params;
-    console.log('Fetching domain with ID:', domainId); // Debug log
-
+    console.log('Fetching domain with ID:', domainId);
+    
     const domain = await Domain.findById(domainId)
       .populate('createdBy', 'username fullName profileImage bio')
       .populate('moderators', 'username fullName profileImage');
 
     if (!domain) {
-      console.log('Domain not found for ID:', domainId); // Debug log
+      console.log('Domain not found for ID:', domainId);
       return res.status(404).json({
         success: false,
         message: 'Domain not found'
       });
     }
 
-    console.log('Domain found:', domain.title); // Debug log
-
+    console.log('Domain found:', domain.title);
+    
     // ✅ CRITICAL FIX: Get associated ideas for this domain
     const ideas = await Idea.find({ 
       domain: domainId, 
       isActive: true,
       isPublic: true,
-      moderationStatus: 'approved'  // Only approved ideas
+      moderationStatus: { $in: ['approved', 'pending'] }  // Include pending for now
     })
     .populate('author', 'authorName profileImage authorEmail')
     .populate('createdBy', 'username fullName profileImage')
     .sort({ createdAt: -1 });
 
-    console.log('Ideas found for domain:', ideas.length); // Debug log
+    console.log('Ideas found for domain:', ideas.length);
     
     // Update view count
     domain.stats.totalViews += 1;
     await domain.save();
 
-    // ✅ CRITICAL FIX: Return the domain with the correct structure
-    // Your frontend expects the ideas to be directly accessible on the domain object
+    // ✅ CRITICAL FIX: Return domain with ideas and correct image field
     const responseData = {
-      ...domain.toObject(),
-      ideas: ideas, // Add ideas array to the domain object
+      _id: domain._id,
+      title: domain.title,
+      description: domain.description,
+      detailedDescription: domain.detailedDescription,
+      // ✅ CRITICAL: Fix image field name for frontend compatibility
+      imageurl: domain.imageUrl, // Frontend expects 'imageurl'
+      imageUrl: domain.imageUrl,  // Keep both for compatibility
+      category: domain.category,
+      tags: domain.tags,
+      topics: domain.topics,
+      stats: domain.stats,
+      settings: domain.settings,
+      isActive: domain.isActive,
+      createdAt: domain.createdAt,
+      updatedAt: domain.updatedAt,
+      createdBy: domain.createdBy,
+      moderators: domain.moderators,
+      // ✅ CRITICAL: Add ideas array that frontend expects
+      ideas: ideas,
       totalTopics: domain.totalTopics,
-      imageurl: domain.imageUrl, // Frontend expects 'imageurl' not 'imageUrl'
       ideaCount: ideas.length
     };
 
-    console.log('Sending response with ideas count:', responseData.ideas?.length); // Debug log
+    console.log('Sending response with structure:', {
+      hasIdeas: !!responseData.ideas,
+      ideasCount: responseData.ideas?.length,
+      hasImageurl: !!responseData.imageurl,
+      hasImageUrl: !!responseData.imageUrl
+    });
 
-    // Return domain data directly (not wrapped in success/data structure)
-    // This matches what your frontend expects
+    // Return domain data directly (not wrapped) - this is what frontend expects
     res.json(responseData);
 
   } catch (error) {

@@ -6,7 +6,6 @@ import "./DomainPage.css";
 
 const DomainPage = () => {
   const navigate = useNavigate();
-  // ✅ CORRECTED: State now tracks the selected difficulty level
   const [selectedLevel, setSelectedLevel] = useState(null); 
   const [Domains, setDomains] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -15,9 +14,17 @@ const DomainPage = () => {
   const getdomain = async () => {
     try {
       const response = await axios.get("http://localhost:5000/api/domains");
-      if (response.data) {
+      console.log('Raw domains response:', response.data); // Debug log
+      
+      // ✅ FIXED: Handle the response format correctly
+      if (Array.isArray(response.data)) {
         setDomains(response.data);
+      } else if (response.data.data && Array.isArray(response.data.data.domains)) {
+        setDomains(response.data.data.domains);
+      } else if (response.data.data && Array.isArray(response.data.data)) {
+        setDomains(response.data.data);
       } else {
+        console.warn('Unexpected response format:', response.data);
         setDomains([]);
       }
     } catch (err) {
@@ -36,9 +43,7 @@ const DomainPage = () => {
     navigate("/domainform");
   };
 
-  // ✅ CORRECTED: A new function to handle the top-level difficulty filter buttons.
   const handleTopLevelClick = (level) => {
-    // If the same button is clicked, unselect it. Otherwise, set the new level.
     setSelectedLevel(selectedLevel === level ? null : level);
   };
 
@@ -58,7 +63,7 @@ const DomainPage = () => {
       return <p className="no-domains-message">No domains available at the moment.</p>;
     }
     
-    // ✅ CORRECTED: Filter domains based on the selected difficulty level.
+    // Filter domains based on the selected difficulty level.
     const filteredDomains = selectedLevel 
       ? Domains.filter(domain => domain.topics && domain.topics[selectedLevel] && domain.topics[selectedLevel].length > 0)
       : Domains;
@@ -70,9 +75,28 @@ const DomainPage = () => {
         onClick={() => handleDomainClick(domain._id)}
       >
         <div className="top-image">
+          {/* ✅ FIXED: Image loading with proper error handling */}
           <img
-            src={`http://localhost:5000${domain.imageurl}`}
+            src={
+              domain.imageUrl 
+                ? `http://localhost:5000${domain.imageUrl}` 
+                : domain.imageurl 
+                  ? `http://localhost:5000${domain.imageurl}`
+                  : '/uploads/defaults/default-domain.jpg'
+            }
             alt={domain.title}
+            onError={(e) => {
+              console.error('Domain image failed to load:', e.target.src);
+              // Try fallback image
+              if (!e.target.src.includes('default-domain.jpg')) {
+                e.target.src = '/uploads/defaults/default-domain.jpg';
+              } else {
+                // If even default fails, hide image and show placeholder
+                e.target.style.display = 'none';
+                e.target.parentElement.style.backgroundColor = '#f0f0f0';
+                e.target.parentElement.innerHTML = '<div class="image-placeholder">No Image</div>';
+              }
+            }}
           />
         </div>
         <h2 className="domain-title">{domain.title}</h2>
@@ -81,7 +105,7 @@ const DomainPage = () => {
         <div className="hover-content">
           <h2 className="hover-domain-title">{domain.title}</h2>
           <div className="hover-topics">
-            {/* ✅ CORRECTED: Displays topics based on the currently selected level. */}
+            {/* Display topics based on the currently selected level. */}
             {selectedLevel && domain.topics && domain.topics[selectedLevel] && domain.topics[selectedLevel].map((topic, index) => (
                 <p key={index}>{topic}</p>
               ))}

@@ -8,6 +8,7 @@ const Chat = () => {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [isConnected, setIsConnected] = useState(false);
+  const [socket, setSocket] = useState(null);
   const chatBoxRef = useRef(null);
 
   useEffect(() => {
@@ -18,27 +19,50 @@ const Chat = () => {
     setUsername(storedUsername);
     setEmail(storedEmail);
 
-    // Connect socket only after fetching user data
-    const socket = io("http://localhost:5000", {
+    // ✅ FIXED: Create socket connection properly
+    const newSocket = io("http://localhost:5000", {
       transports: ["websocket", "polling"],
+      autoConnect: true,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
     });
 
-    socket.on("connect", () => {
+    newSocket.on("connect", () => {
       console.log("Connected to socket server");
       setIsConnected(true);
-      socket.emit("getMessages");
+      // ✅ FIXED: Get global messages instead of just "getMessages"
+      newSocket.emit("getMessages");
     });
 
-    socket.on("chatHistory", (messages) => {
-      setChat(messages);
+    newSocket.on("disconnect", () => {
+      console.log("Disconnected from socket server");
+      setIsConnected(false);
     });
 
-    socket.on("receiveMessage", (message) => {
-      setChat((prevChat) => [...prevChat, message]);
+    newSocket.on("connect_error", (error) => {
+      console.error("Connection error:", error);
+      setIsConnected(false);
     });
 
+    // ✅ FIXED: Listen for chat history
+    newSocket.on("chatHistory", (messages) => {
+      console.log("Received chat history:", messages);
+      setChat(Array.isArray(messages) ? messages : []);
+    });
+
+    // ✅ FIXED: Listen for new messages
+    newSocket.on("receiveMessage", (newMessage) => {
+      console.log("Received new message:", newMessage);
+      setChat((prevChat) => [...prevChat, newMessage]);
+    });
+
+    setSocket(newSocket);
+
+    // Cleanup function
     return () => {
-      socket.disconnect();
+      newSocket.removeAllListeners();
+      newSocket.disconnect();
     };
   }, []);
 
@@ -50,42 +74,90 @@ const Chat = () => {
   }, [chat]);
 
   const sendMessage = () => {
-    if (message.trim() !== "" && isConnected) {
-      const socket = io("http://localhost:5000");
-      socket.emit("sendMessage", { username, email, message });
+    if (message.trim() !== "" && isConnected && socket) {
+      console.log("Sending message:", { username, email, message });
+      
+      // ✅ FIXED: Use the existing socket connection
+      socket.emit("sendMessage", { 
+        username, 
+        email, 
+        message: message.trim(),
+        timestamp: new Date()
+      });
+      
       setMessage("");
+    } else {
+      console.warn("Cannot send message:", {
+        hasMessage: message.trim() !== "",
+        isConnected,
+        hasSocket: !!socket
+      });
     }
   };
 
   // Handle Enter key press
   const handleKeyPress = (e) => {
-    if (e.key === "Enter") {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
       sendMessage();
     }
   };
 
   return (
     <div className="chat-container">
-      <h2 className="text-black text-3xl">Global Chat</h2>
-      <div className="chat-box" ref={chatBoxRef}>
-        {chat.map((msg, index) => (
-          <div key={index} className="message">
-            <strong>{msg.username}:</strong> {msg.message} <br />
-            <small>{new Date(msg.timestamp).toLocaleString()}</small>
-          </div>
-        ))}
+      <div className="chat-header">
+        <h2 className="text-black text-3xl">Global Chat</h2>
+        <div className="connection-status">
+          <span className={`status-indicator ${isConnected ? 'connected' : 'disconnected'}`}>
+            {isConnected ? '🟢 Connected' : '🔴 Disconnected'}
+          </span>
+        </div>
       </div>
+      
+      <div className="chat-box" ref={chatBoxRef}>
+        {chat.length > 0 ? (
+          chat.map((msg, index) => (
+            <div key={index} className="message">
+              <div className="message-header">
+                <strong className="username">{msg.username}</strong>
+                <small className="timestamp">
+                  {new Date(msg.timestamp).toLocaleString()}
+                </small>
+              </div>
+              <div className="message-content">{msg.message}</div>
+            </div>
+          ))
+        ) : (
+          <div className="no-messages">
+            {isConnected ? "No messages yet. Start the conversation!" : "Connecting to chat..."}
+          </div>
+        )}
+      </div>
+      
       <div className="chat-input">
-        <input
-          type="text"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyPress={handleKeyPress}
-          placeholder="Type your message..."
-        />
-        <button onClick={sendMessage} disabled={!isConnected}>
-          {isConnected ? "Send" : "Connecting..."}
-        </button>
+        <div className="input-group">
+          <textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="Type your message... (Press Enter to send)"
+            rows="2"
+            disabled={!isConnected}
+          />
+          <button 
+            onClick={sendMessage} 
+            disabled={!isConnected || !message.trim()}
+            className={`send-button ${isConnected && message.trim() ? 'active' : 'inactive'}`}
+          >
+            {isConnected ? "Send" : "Connecting..."}
+          </button>
+        </div>
+        <div className="chat-info">
+          <small>
+            Chatting as: <strong>{username}</strong> 
+            {!isConnected && " (Trying to reconnect...)"}
+          </small>
+        </div>
       </div>
     </div>
   );
