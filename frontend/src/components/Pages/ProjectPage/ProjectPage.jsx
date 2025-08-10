@@ -1,4 +1,3 @@
-// ProjectPage.jsx
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
@@ -11,14 +10,14 @@ const Comment = ({ comment, onAddReply, level = 0 }) => {
   const [replies, setReplies] = useState([]);
   const [loadingReplies, setLoadingReplies] = useState(false);
 
-  // Load replies when "View Replies" is clicked
+  // Load replies when "View Replies" is clicked - YouTube style
   const loadReplies = async () => {
     if (replies.length === 0 && comment.replyCount > 0) {
       setLoadingReplies(true);
       try {
         const response = await axios.get(`http://localhost:5000/api/comments/thread/${comment._id}`);
-        if (response.data.success && response.data.data.comment.replies) {
-          setReplies(response.data.data.comment.replies);
+        if (response.data.success && response.data.data.replies) {
+          setReplies(response.data.data.replies);
         }
       } catch (error) {
         console.error("Error loading replies:", error);
@@ -31,13 +30,18 @@ const Comment = ({ comment, onAddReply, level = 0 }) => {
   const handleReplySubmit = async (e) => {
     e.preventDefault();
     if (replyText.trim()) {
-      await onAddReply(comment._id, replyText);
-      setReplyText("");
-      setShowReplyInput(false);
-      // Refresh replies after adding a new one
-      if (showReplies) {
-        setReplies([]);
-        loadReplies();
+      const success = await onAddReply(comment._id, replyText);
+      if (success) {
+        setReplyText("");
+        setShowReplyInput(false);
+        // Refresh replies after adding a new one
+        if (showReplies) {
+          setReplies([]);
+          await loadReplies();
+        } else {
+          // Increment reply count locally
+          comment.replyCount = (comment.replyCount || 0) + 1;
+        }
       }
     }
   };
@@ -45,7 +49,14 @@ const Comment = ({ comment, onAddReply, level = 0 }) => {
   return (
     <div className={`comment-card ${level > 0 ? 'comment-reply' : ''}`}>
       <div className="comment-header">
-        <strong>{comment.author?.username || comment.authorName}:</strong>
+        <div className="comment-author">
+          <img 
+            src="https://via.placeholder.com/32" 
+            alt={comment.author?.username || comment.authorName}
+            className="comment-avatar"
+          />
+          <strong>{comment.author?.username || comment.authorName}</strong>
+        </div>
         <span className="comment-time">
           {new Date(comment.createdAt).toLocaleDateString()}
         </span>
@@ -56,12 +67,15 @@ const Comment = ({ comment, onAddReply, level = 0 }) => {
       </div>
       
       <div className="comment-actions">
-        <button 
-          className="reply-btn"
-          onClick={() => setShowReplyInput(!showReplyInput)}
-        >
-          Reply
-        </button>
+        {/* Only show Reply button for main comments (level 0) */}
+        {level === 0 && (
+          <button 
+            className="reply-btn"
+            onClick={() => setShowReplyInput(!showReplyInput)}
+          >
+            Reply
+          </button>
+        )}
         
         {/* Show "View Replies" button only for main comments with replies */}
         {level === 0 && comment.replyCount > 0 && (
@@ -77,8 +91,8 @@ const Comment = ({ comment, onAddReply, level = 0 }) => {
         )}
       </div>
 
-      {/* Reply Input */}
-      {showReplyInput && (
+      {/* Reply Input - Only show for main comments */}
+      {level === 0 && showReplyInput && (
         <form onSubmit={handleReplySubmit} className="reply-form">
           <textarea
             value={replyText}
@@ -124,13 +138,20 @@ const ProjectPage = () => {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
 
+  // Fetch MAIN comments only (no replies) - YouTube style
   const fetchComments = async () => {
     try {
-      // Only fetch root comments (no replies)
-      const res = await axios.get(`http://localhost:5000/api/comments/idea/${ideaId}?includeReplies=false`);
-      setComments(res.data.data ? res.data.data.comments : res.data);
+      // Fetch only main comments (no replies included)
+      const res = await axios.get(`http://localhost:5000/api/comments/idea/${ideaId}`);
+      if (res.data.success) {
+        setComments(res.data.data.comments || []);
+      } else {
+        console.error("Failed to fetch comments:", res.data.message);
+        setComments([]);
+      }
     } catch (error) {
       console.error("Error fetching comments:", error);
+      setComments([]);
     }
   };
 
@@ -163,24 +184,42 @@ const ProjectPage = () => {
       try {
         const token = localStorage.getItem('token');
         const commentData = {
-          content: text, 
-          parentComment: parentId
+          content: text.trim()
         };
         
-        await axios.post(`http://localhost:5000/api/comments/idea/${ideaId}`, commentData, {
-          headers: {
-            'Authorization': token ? `Bearer ${token}` : '',
-            'Content-Type': 'application/json'
-          }
-        });
+        // If parentId is provided, it's a reply
+        if (parentId) {
+          commentData.parentComment = parentId;
+        }
         
-        setNewComment("");
-        fetchComments(); // Refresh comments after adding
+        const response = await axios.post(
+          `http://localhost:5000/api/comments/idea/${ideaId}`, 
+          commentData, 
+          {
+            headers: {
+              'Authorization': token ? `Bearer ${token}` : '',
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        
+        if (response.data.success) {
+          // If it's a main comment (no parentId), refresh the main comments
+          if (!parentId) {
+            setNewComment("");
+            await fetchComments();
+          }
+          return true; // Return success for reply handling
+        } else {
+          throw new Error(response.data.message || "Failed to add comment");
+        }
       } catch (error) {
         console.error("Error adding comment:", error);
-        alert("Failed to add comment. Please make sure you're logged in.");
+        alert(`Failed to add comment: ${error.response?.data?.message || error.message}`);
+        return false;
       }
     }
+    return false;
   };
 
   const handleLike = async () => {

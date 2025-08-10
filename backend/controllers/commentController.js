@@ -3,16 +3,15 @@ const Comment = require('../models/Comment');
 const Idea = require('../models/Idea');
 const Domain = require('../models/Domain');
 
-// Get comments for a target (idea, domain, etc.)
-exports.getComments = async (req, res) => {
+// Get MAIN comments only (no replies) - YouTube style
+exports.getMainComments = async (req, res) => {
   try {
     const { targetType, targetId } = req.params;
     const { 
       page = 1, 
       limit = 20, 
       sort = 'createdAt',
-      order = 'desc',
-      includeReplies = false
+      order = 'desc'
     } = req.query;
 
     // Validate target type
@@ -39,17 +38,22 @@ exports.getComments = async (req, res) => {
       });
     }
 
-    const options = {
-      includeReplies: includeReplies === 'true',
-      sort: order === 'desc' ? -1 : 1,
-      limit: parseInt(limit),
-      skip: (parseInt(page) - 1) * parseInt(limit),
-      replyLimit: 5
-    };
+    // Get ONLY main comments (parentComment: null)
+    const comments = await Comment.find({
+      targetType,
+      targetId,
+      isDeleted: false,
+      status: 'active',
+      isApproved: true,
+      parentComment: null // This is the key - only root comments
+    })
+    .populate('author', 'username fullName profileImage')
+    .sort({ [sort]: order === 'desc' ? -1 : 1 })
+    .limit(parseInt(limit))
+    .skip((parseInt(page) - 1) * parseInt(limit))
+    .lean(); // Use lean for better performance
 
-    const comments = await Comment.getCommentsForTarget(targetType, targetId, options);
-    
-    // Get total count
+    // Get total count of main comments only
     const total = await Comment.countDocuments({
       targetType,
       targetId,
@@ -77,7 +81,7 @@ exports.getComments = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get comments error:', error);
+    console.error('Get main comments error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error',
@@ -86,7 +90,68 @@ exports.getComments = async (req, res) => {
   }
 };
 
-// Create new comment
+// Get replies for a specific comment - YouTube style "View Replies"
+exports.getCommentReplies = async (req, res) => {
+  try {
+    const { commentId } = req.params;
+    const { page = 1, limit = 10 } = req.query;
+
+    // First, get the parent comment to verify it exists
+    const parentComment = await Comment.findById(commentId)
+      .populate('author', 'username fullName profileImage');
+    
+    if (!parentComment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Comment not found'
+      });
+    }
+
+    // Get all replies to this comment
+    const replies = await Comment.find({
+      parentComment: commentId,
+      isDeleted: false,
+      status: 'active',
+      isApproved: true
+    })
+    .populate('author', 'username fullName profileImage')
+    .sort({ createdAt: 1 }) // Replies in chronological order
+    .limit(parseInt(limit))
+    .skip((parseInt(page) - 1) * parseInt(limit))
+    .lean();
+
+    // Get total count of replies
+    const totalReplies = await Comment.countDocuments({
+      parentComment: commentId,
+      isDeleted: false,
+      status: 'active'
+    });
+
+    res.json({
+      success: true,
+      data: {
+        comment: parentComment,
+        replies,
+        pagination: {
+          current: parseInt(page),
+          total: Math.ceil(totalReplies / parseInt(limit)),
+          count: replies.length,
+          totalItems: totalReplies
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Get comment replies error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+// Create new comment (main or reply)
 exports.createComment = async (req, res) => {
   try {
     // Check for validation errors
@@ -107,7 +172,7 @@ exports.createComment = async (req, res) => {
     }
 
     const { targetType, targetId } = req.params;
-    const { content, parentCommentId } = req.body;
+    const { content, parentComment } = req.body; // parentComment instead of parentCommentId
 
     // Validate target type
     const validTargetTypes = ['idea', 'domain'];
@@ -141,27 +206,35 @@ exports.createComment = async (req, res) => {
     let threadLevel = 0;
 
     // Handle reply to existing comment
-    if (parentCommentId) {
-      const parentComment = await Comment.findById(parentCommentId);
+    if (parentComment) {
+      const parentCommentDoc = await Comment.findById(parentComment);
       
-      if (!parentComment) {
+      if (!parentCommentDoc) {
         return res.status(404).json({
           success: false,
           message: 'Parent comment not found'
         });
       }
 
-      // Create reply using parent comment's method
-      const replyData = parentComment.addReply({
+      // Limit nesting depth
+      if (parentCommentDoc.threadLevel >= 5) {
+        return res.status(400).json({
+          success: false,
+          message: 'Maximum reply depth reached'
+        });
+      }
+
+      threadLevel = parentCommentDoc.threadLevel + 1;
+
+      comment = new Comment({
         content,
         author: req.userId,
-        targetType: 'comment',
-        targetId: parentCommentId,
-        targetModel: 'Comment'
+        targetType,
+        targetId,
+        targetModel,
+        parentComment,
+        threadLevel
       });
-
-      comment = new Comment(replyData);
-      threadLevel = replyData.threadLevel;
 
     } else {
       // Create root comment
@@ -195,7 +268,6 @@ exports.createComment = async (req, res) => {
     }
 
     if (mentions.length > 0) {
-      // Find mentioned users (simplified - in real app you'd want better user matching)
       const User = require('../models/User');
       const mentionedUsers = await User.find({ 
         username: { $in: mentions } 
@@ -206,9 +278,18 @@ exports.createComment = async (req, res) => {
 
     await comment.save();
 
-    // Update target's comment count
-    if (targetType === 'idea') {
-      target.stats.totalComments += 1;
+    // Update parent comment's reply count if this is a reply
+    if (parentComment) {
+      await Comment.findByIdAndUpdate(parentComment, {
+        $inc: { replyCount: 1 },
+        $addToSet: { replies: comment._id }
+      });
+    }
+
+    // Update target's comment count (only for main comments)
+    if (targetType === 'idea' && !parentComment) {
+      target.stats = target.stats || {};
+      target.stats.totalComments = (target.stats.totalComments || 0) + 1;
       await target.save();
     }
 
@@ -275,8 +356,17 @@ exports.updateComment = async (req, res) => {
       });
     }
 
-    // Update comment using the editMessage method
-    await comment.editMessage(content);
+    // Save edit history
+    if (!comment.editHistory) comment.editHistory = [];
+    comment.editHistory.push({
+      content: comment.content,
+      editedAt: new Date()
+    });
+
+    // Update content
+    comment.content = content;
+    comment.isEdited = true;
+    await comment.save();
 
     // Populate updated comment
     await comment.populate('author', 'username fullName profileImage');
@@ -320,14 +410,26 @@ exports.deleteComment = async (req, res) => {
     }
 
     // Soft delete the comment
-    await comment.softDelete();
+    comment.isDeleted = true;
+    comment.deletedAt = new Date();
+    comment.content = '[Comment deleted]';
+    comment.status = 'deleted';
+    await comment.save();
+
+    // Update parent comment's reply count if this is a reply
+    if (comment.parentComment) {
+      await Comment.findByIdAndUpdate(comment.parentComment, {
+        $inc: { replyCount: -1 },
+        $pull: { replies: comment._id }
+      });
+    }
 
     // Update target's comment count if it's a root comment
     if (!comment.parentComment) {
       if (comment.targetType === 'idea') {
         const idea = await Idea.findById(comment.targetId);
-        if (idea) {
-          idea.stats.totalComments = Math.max(0, idea.stats.totalComments - 1);
+        if (idea && idea.stats) {
+          idea.stats.totalComments = Math.max(0, (idea.stats.totalComments || 0) - 1);
           await idea.save();
         }
       }
@@ -369,10 +471,20 @@ exports.toggleLike = async (req, res) => {
       });
     }
 
-    const User = require('../models/User');
-    const user = await User.findById(req.userId);
+    const existingLike = comment.likes.find(like => like.user.toString() === req.userId);
     
-    const isLiked = comment.toggleLike(req.userId);
+    let isLiked;
+    if (existingLike) {
+      // Remove like
+      comment.likes.pull(existingLike._id);
+      isLiked = false;
+    } else {
+      // Add like
+      comment.likes.push({ user: req.userId });
+      isLiked = true;
+    }
+
+    comment.likeCount = comment.likes.length;
     await comment.save();
 
     res.json({
@@ -386,36 +498,6 @@ exports.toggleLike = async (req, res) => {
 
   } catch (error) {
     console.error('Toggle comment like error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-};
-
-// Get comment thread (comment with all its replies)
-exports.getCommentThread = async (req, res) => {
-  try {
-    const { commentId } = req.params;
-    const { maxDepth = 3 } = req.query;
-
-    const commentThread = await Comment.getCommentThread(commentId, parseInt(maxDepth));
-    
-    if (!commentThread) {
-      return res.status(404).json({
-        success: false,
-        message: 'Comment not found'
-      });
-    }
-
-    res.json({
-      success: true,
-      data: { comment: commentThread }
-    });
-
-  } catch (error) {
-    console.error('Get comment thread error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error',
@@ -462,7 +544,27 @@ exports.flagComment = async (req, res) => {
       });
     }
 
-    await comment.addFlag(req.userId, reason, description);
+    // Check if user already flagged this comment
+    const existingFlag = comment.flags.find(flag => flag.user.toString() === req.userId);
+    if (existingFlag) {
+      return res.status(400).json({
+        success: false,
+        message: 'You have already flagged this comment'
+      });
+    }
+
+    comment.flags.push({
+      user: req.userId,
+      reason,
+      description
+    });
+
+    // Auto-flag if too many flags
+    if (comment.flags.length >= 5) {
+      comment.status = 'flagged';
+    }
+
+    await comment.save();
 
     res.json({
       success: true,
@@ -491,21 +593,29 @@ exports.searchComments = async (req, res) => {
       });
     }
 
-    const filters = {};
-    if (targetType) filters.targetType = targetType;
-    if (targetId) filters.targetId = targetId;
+    const searchRegex = new RegExp(query, 'i');
+    const filter = {
+      content: searchRegex,
+      isDeleted: false,
+      status: 'active',
+      isApproved: true
+    };
 
-    const comments = await Comment.searchComments(query, filters, {
-      limit: parseInt(limit),
-      skip: (parseInt(page) - 1) * parseInt(limit)
-    });
+    if (targetType) filter.targetType = targetType;
+    if (targetId) filter.targetId = targetId;
+
+    const comments = await Comment.find(filter)
+      .populate('author', 'username fullName profileImage')
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit))
+      .skip((parseInt(page) - 1) * parseInt(limit));
 
     res.json({
       success: true,
       data: {
         comments,
         query,
-        filters,
+        filters: { targetType, targetId },
         pagination: {
           current: parseInt(page),
           count: comments.length

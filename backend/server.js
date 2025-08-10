@@ -358,6 +358,76 @@ app.use("/api/authors", authorRoutes);
 app.use("/api/comments", commentRoutes);
 app.use("/api/chat", chatRoutes);
 
+// ===== COMMENT ROUTES INTEGRATION =====
+// Legacy route compatibility for existing frontend code
+// Legacy route for getting comments by idea
+app.get("/api/comments/idea/:ideaId", async (req, res) => {
+  try {
+    // Redirect to the new standardized route
+    const { ideaId } = req.params;
+    const { includeReplies = 'false' } = req.query;
+    
+    // Forward request to the new comment controller
+    req.params.targetType = 'idea';
+    req.params.targetId = ideaId;
+    
+    // Import the controller
+    const commentController = require("./controllers/commentController");
+    
+    // Call the appropriate controller method
+    if (includeReplies === 'false') {
+      return commentController.getMainComments(req, res);
+    } else {
+      return commentController.getMainComments(req, res);
+    }
+  } catch (error) {
+    console.error("Legacy comment route error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// Legacy route for posting comments to ideas
+app.post("/api/comments/idea/:ideaId", async (req, res) => {
+  try {
+    // Forward to the new standardized route
+    const { ideaId } = req.params;
+    
+    req.params.targetType = 'idea';
+    req.params.targetId = ideaId;
+    
+    // Import the controller and middleware
+    const commentController = require("./controllers/commentController");
+    const { authenticate } = require("./middleware/auth");
+    
+    // Apply authentication middleware
+    authenticate(req, res, (err) => {
+      if (err) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+      }
+      
+      // Call the controller
+      return commentController.createComment(req, res);
+    });
+    
+  } catch (error) {
+    console.error("Legacy comment post route error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+console.log("✅ Comment routes integrated successfully");
+
 // Legacy routes for compatibility
 app.use("/", domainRoutes);
 app.use("/", ideaRoutes);

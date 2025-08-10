@@ -99,9 +99,15 @@
   transition: all 0.3s ease;
 }
 
-.add-comment-button:hover {
+.add-comment-button:hover:not(:disabled) {
   background: var(--hover-bg);
   transform: translateY(-2px);
+}
+
+.add-comment-button:disabled {
+  background: #666;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .comment-list {
@@ -140,7 +146,20 @@
   margin-bottom: 8px;
 }
 
-.comment-header strong {
+.comment-author {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.comment-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.comment-author strong {
   color: #1a73e8;
   font-size: 0.9rem;
 }
@@ -444,5 +463,15 @@
   
   .submit-reply-btn, .cancel-reply-btn {
     width: 100%;
+  }
+
+  .comment-author {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .comment-avatar {
+    width: 28px;
+    height: 28px;
   }
 }
