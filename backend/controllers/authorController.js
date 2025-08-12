@@ -18,7 +18,7 @@ exports.getAllAuthors = async (req, res) => {
     const filter = { isActive: true };
     
     if (verified !== undefined) {
-      filter.isVerified = verified === 'true';
+      filter['verification.isVerified'] = verified === 'true';
     }
 
     if (researchArea) {
@@ -36,7 +36,7 @@ exports.getAllAuthors = async (req, res) => {
       });
     } else {
       query = Author.find(filter)
-        .select('authorName title organization bio profileImage researchAreas isVerified stats joinedAt')
+        .select('authorName title organization bio profileImage researchAreas verification.isVerified stats joinedAt phone socialMedia')
         .sort({ [`stats.${sort}`]: -1 })
         .limit(parseInt(limit))
         .skip((parseInt(page) - 1) * parseInt(limit));
@@ -146,9 +146,12 @@ exports.createAuthor = async (req, res) => {
       });
     }
 
-    // Handle profile image upload
+    // Handle profile image upload (for author photo from UserForm)
     let profileImage = '/uploads/defaults/default-author.png';
-    if (req.file) {
+    if (req.files?.authorPhoto && req.files.authorPhoto[0]) {
+      profileImage = `/uploads/authors/${req.files.authorPhoto[0].filename}`;
+    } else if (req.file) {
+      // Fallback for single file upload
       profileImage = `/uploads/authors/${req.file.filename}`;
     }
 
@@ -163,6 +166,12 @@ exports.createAuthor = async (req, res) => {
       }
       return field || [];
     };
+
+    // Parse social media - handle single social media link from UserForm
+    let socialMediaArray = [];
+    if (socialMedia) {
+      socialMediaArray = parseJsonField(socialMedia);
+    }
 
     // Create author
     const author = new Author({
@@ -187,7 +196,7 @@ exports.createAuthor = async (req, res) => {
       researchAreas: parseJsonField(researchAreas),
       expertise: parseJsonField(expertise),
       education: parseJsonField(education),
-      socialMedia: parseJsonField(socialMedia),
+      socialMedia: socialMediaArray,
       collaborationPreferences: parseJsonField(collaborationPreferences),
       topics: parseJsonField(topics),
       userId: req.userId // Link to the user who created this author profile
@@ -244,7 +253,9 @@ exports.updateAuthor = async (req, res) => {
     }
 
     // Handle profile image update
-    if (req.file) {
+    if (req.files?.authorPhoto && req.files.authorPhoto[0]) {
+      updates.profileImage = `/uploads/authors/${req.files.authorPhoto[0].filename}`;
+    } else if (req.file) {
       updates.profileImage = `/uploads/authors/${req.file.filename}`;
     }
 
@@ -359,7 +370,7 @@ exports.getAuthorByTopic = async (req, res) => {
     const { topic } = req.params;
 
     const authors = await Author.findByTopic(topic)
-      .select('authorName profileImage bio researchAreas isVerified stats')
+      .select('authorName profileImage bio researchAreas verification.isVerified stats phone socialMedia')
       .limit(10);
 
     if (authors.length === 0) {
@@ -495,7 +506,7 @@ exports.getAuthorCollaborationInfo = async (req, res) => {
     const { authorId } = req.params;
 
     const author = await Author.findById(authorId)
-      .select('authorName profileImage bio collaborationPreferences contactInfo privacy');
+      .select('authorName profileImage bio collaborationPreferences contactInfo privacy phone socialMedia');
 
     if (!author || !author.isActive) {
       return res.status(404).json({
@@ -521,16 +532,17 @@ exports.getAuthorCollaborationInfo = async (req, res) => {
       profileImage: author.profileImage,
       bio: author.bio,
       available: true,
-      preferences: author.collaborationPreferences
+      preferences: author.collaborationPreferences,
+      socialMedia: author.socialMedia
     };
 
     // Add contact info if privacy allows
     if (author.privacy.allowDirectContact) {
       if (author.privacy.showEmail) {
-        collaborationInfo.email = author.contactInfo.email;
+        collaborationInfo.email = author.contactInfo?.email || author.authorEmail;
       }
       if (author.privacy.showPhone) {
-        collaborationInfo.phone = author.contactInfo.phone;
+        collaborationInfo.phone = author.contactInfo?.phone || author.phone;
       }
     }
 
@@ -572,8 +584,9 @@ exports.verifyAuthor = async (req, res) => {
       });
     }
 
-    author.isVerified = true;
-    author.verificationMethod = verificationMethod;
+    author.verification.isVerified = true;
+    author.verification.verificationMethod = verificationMethod;
+    author.verification.verificationDate = new Date();
     await author.save();
 
     res.json({
@@ -602,7 +615,7 @@ exports.getAuthorsByResearchArea = async (req, res) => {
       researchAreas: { $in: [new RegExp(researchArea, 'i')] },
       isActive: true
     })
-    .select('authorName title organization profileImage bio researchAreas isVerified stats')
+    .select('authorName title organization profileImage bio researchAreas verification.isVerified stats phone socialMedia')
     .sort({ 'stats.totalIdeas': -1 })
     .limit(parseInt(limit))
     .skip((parseInt(page) - 1) * parseInt(limit));

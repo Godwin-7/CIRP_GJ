@@ -137,6 +137,22 @@ const ProjectPage = () => {
   const [error, setError] = useState(null);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
+  const [currentUserId, setCurrentUserId] = useState(null);
+  const [isEditingStatus, setIsEditingStatus] = useState(false);
+  const [newStatus, setNewStatus] = useState("");
+
+  // Check authentication and get user ID
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        setCurrentUserId(payload.userId);
+      } catch (error) {
+        console.error('Error parsing token:', error);
+      }
+    }
+  }, []);
 
   // Fetch MAIN comments only (no replies) - YouTube style
   const fetchComments = async () => {
@@ -165,6 +181,7 @@ const ProjectPage = () => {
         
         const ideaData = response.data.data ? response.data.data.idea : response.data;
         setIdea(ideaData);
+        setNewStatus(ideaData.status || "Not yet started");
         setLoading(false);
       } catch (error) {
         console.error("Error fetching idea details:", error);
@@ -248,6 +265,46 @@ const ProjectPage = () => {
     }
   };
 
+  const handleStatusUpdate = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert("Please log in to update status");
+        return;
+      }
+
+      const response = await axios.put(
+        `http://localhost:5000/api/ideas/${ideaId}`,
+        { status: newStatus },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.data.success) {
+        setIdea(prevIdea => ({
+          ...prevIdea,
+          status: newStatus
+        }));
+        setIsEditingStatus(false);
+        alert("Status updated successfully!");
+      }
+    } catch (error) {
+      console.error("Error updating status:", error);
+      alert("Failed to update status. " + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const canEditStatus = () => {
+    return currentUserId && idea && (
+      idea.createdBy?._id === currentUserId || 
+      idea.createdBy === currentUserId
+    );
+  };
+
   if (loading) {
     return <div className="loading">Loading...</div>;
   }
@@ -269,9 +326,10 @@ const ProjectPage = () => {
 
       <div className="project-container">
         <div className="project-details">
+          {/* Basic Project Information */}
           <div className="content-box">
             <h2>📄 Project Details</h2>
-            <p>{idea.description}</p>
+            <p><strong>Description:</strong> {idea.description}</p>
             
             {idea.detailedDescription && (
               <div className="detailed-description">
@@ -279,8 +337,12 @@ const ProjectPage = () => {
                 <p>{idea.detailedDescription}</p>
               </div>
             )}
-            
-            {idea.projectImage && (
+          </div>
+
+          {/* Project Images */}
+          {idea.projectImage && (
+            <div className="content-box">
+              <h2>🖼️ Project Images</h2>
               <div className="project-images">
                 <h3>Main Image</h3>
                 <img 
@@ -292,13 +354,15 @@ const ProjectPage = () => {
                   }}
                 />
               </div>
-            )}
-            
-            {idea.additionalImages && idea.additionalImages.length > 0 && (
+            </div>
+          )}
+          
+          {idea.additionalImages && idea.additionalImages.length > 0 && (
+            <div className="content-box">
+              <h2>📷 Additional Images</h2>
               <div className="project-images">
-                <h3>Additional Images</h3>
                 {idea.additionalImages.map((imageObj, index) => (
-                  <div key={index}>
+                  <div key={index} className="additional-image">
                     <img 
                       src={`http://localhost:5000${imageObj.url || imageObj}`} 
                       alt={imageObj.caption || `Project image ${index + 1}`} 
@@ -307,105 +371,260 @@ const ProjectPage = () => {
                         e.target.style.display = 'none';
                       }}
                     />
-                    {imageObj.caption && <p>{imageObj.caption}</p>}
+                    {imageObj.caption && <p className="image-caption">{imageObj.caption}</p>}
                   </div>
                 ))}
               </div>
-            )}
-            
-            {idea.tags && idea.tags.length > 0 && (
-              <div className="project-tags">
-                <h3>Tags</h3>
-                <div className="tags-container">
-                  {idea.tags.map((tag, index) => (
-                    <span key={index} className="tag">{tag}</span>
-                  ))}
+            </div>
+          )}
+
+          {/* Project Metadata */}
+          <div className="content-box">
+            <h2>ℹ️ Project Information</h2>
+            <div className="project-info-grid">
+              <p><strong>📅 Created:</strong> {new Date(idea.createdAt).toLocaleDateString()}</p>
+              <p><strong>🎯 Difficulty:</strong> 
+                <span className={`difficulty-badge ${idea.difficulty?.toLowerCase()}`}>
+                  {idea.difficulty}
+                </span>
+              </p>
+              <p><strong>📂 Category:</strong> {idea.category}</p>
+              
+              {/* Enhanced Status Section */}
+              <div className="project-status-section">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <p><strong>📈 Status:</strong></p>
+                  {!isEditingStatus ? (
+                    <>
+                      <span className={`status-badge ${idea.status?.toLowerCase().replace(/\s+/g, '-') || 'not-started'}`}>
+                        {idea.status || "Not yet started"}
+                      </span>
+                      {canEditStatus() && (
+                        <button 
+                          onClick={() => setIsEditingStatus(true)}
+                          className="edit-status-btn"
+                        >
+                          Edit
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <div className="status-edit-controls">
+                      <select 
+                        value={newStatus}
+                        onChange={(e) => setNewStatus(e.target.value)}
+                      >
+                        <option value="Not yet started">Not yet started</option>
+                        <option value="In progress">In progress</option>
+                        <option value="Collaboration needed">Collaboration needed</option>
+                        <option value="Completed">Completed</option>
+                        <option value="On hold">On hold</option>
+                        <option value="Cancelled">Cancelled</option>
+                      </select>
+                      <button onClick={handleStatusUpdate} className="save-btn">Save</button>
+                      <button 
+                        onClick={() => {
+                          setIsEditingStatus(false);
+                          setNewStatus(idea.status || "Not yet started");
+                        }}
+                        className="cancel-btn"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
-            
-            {idea.requiredSkills && idea.requiredSkills.length > 0 && (
-              <div className="required-skills">
-                <h3>Required Skills</h3>
-                <div className="skills-container">
-                  {idea.requiredSkills.map((skillObj, index) => (
-                    <span key={index} className="skill">
-                      {typeof skillObj === 'object' ? skillObj.skill : skillObj}
-                    </span>
-                  ))}
-                </div>
+
+              {/* Estimated Duration */}
+              {idea.estimatedDuration && (
+                <p><strong>⏱️ Estimated Duration:</strong> 
+                  {idea.estimatedDuration.value} {idea.estimatedDuration.unit}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Tags and Skills */}
+          {(idea.tags && idea.tags.length > 0) && (
+            <div className="content-box">
+              <h2>🏷️ Tags</h2>
+              <div className="tags-container">
+                {idea.tags.map((tag, index) => (
+                  <span key={index} className="tag">{tag}</span>
+                ))}
               </div>
-            )}
-            
-            {idea.relatedLinks && idea.relatedLinks.length > 0 && (
+            </div>
+          )}
+          
+          {(idea.requiredSkills && idea.requiredSkills.length > 0) && (
+            <div className="content-box">
+              <h2>🛠️ Required Skills</h2>
+              <div className="skills-container">
+                {idea.requiredSkills.map((skillObj, index) => (
+                  <span key={index} className="skill">
+                    {typeof skillObj === 'object' ? `${skillObj.skill} (${skillObj.level || 'intermediate'})` : skillObj}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Project Scope */}
+          {idea.scope && (
+            <div className="content-box">
+              <h2>🎯 Project Scope</h2>
+              <div className="scope-section">
+                {idea.scope.shortTerm && idea.scope.shortTerm.length > 0 && (
+                  <div className="scope-item">
+                    <h3>Short-term Goals</h3>
+                    <ul>
+                      {idea.scope.shortTerm.map((goal, index) => (
+                        <li key={index}>{goal}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {idea.scope.longTerm && idea.scope.longTerm.length > 0 && (
+                  <div className="scope-item">
+                    <h3>Long-term Goals</h3>
+                    <ul>
+                      {idea.scope.longTerm.map((goal, index) => (
+                        <li key={index}>{goal}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {idea.scope.limitations && idea.scope.limitations.length > 0 && (
+                  <div className="scope-item">
+                    <h3>Limitations</h3>
+                    <ul>
+                      {idea.scope.limitations.map((limitation, index) => (
+                        <li key={index}>{limitation}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {idea.scope.assumptions && idea.scope.assumptions.length > 0 && (
+                  <div className="scope-item">
+                    <h3>Assumptions</h3>
+                    <ul>
+                      {idea.scope.assumptions.map((assumption, index) => (
+                        <li key={index}>{assumption}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Future Enhancements */}
+          {idea.futureEnhancements && idea.futureEnhancements.length > 0 && (
+            <div className="content-box">
+              <h2>🚀 Future Enhancements</h2>
+              <div className="enhancements-list">
+                {idea.futureEnhancements.map((enhancement, index) => (
+                  <div key={index} className="enhancement-item">
+                    <div className="enhancement-header">
+                      <h3>{enhancement.title}</h3>
+                      <span className={`priority-badge ${enhancement.priority.toLowerCase()}`}>
+                        {enhancement.priority} priority
+                      </span>
+                    </div>
+                    <p>{enhancement.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Related Links */}
+          {idea.relatedLinks && idea.relatedLinks.length > 0 && (
+            <div className="content-box">
+              <h2>🔗 Related Links</h2>
               <div className="related-links">
-                <h3>Related Links</h3>
-                <ul>
-                  {idea.relatedLinks.map((linkObj, index) => (
-                    <li key={index}>
+                {idea.relatedLinks.map((linkObj, index) => (
+                  <div key={index} className="link-item">
+                    <div className="link-header">
                       <a href={linkObj.url || linkObj} target="_blank" rel="noopener noreferrer">
                         {linkObj.title || linkObj.url || linkObj}
                       </a>
-                      {linkObj.description && <p>{linkObj.description}</p>}
-                    </li>
-                  ))}
-                </ul>
+                      <span className={`link-type ${linkObj.type || 'other'}`}>
+                        {linkObj.type || 'other'}
+                      </span>
+                    </div>
+                    {linkObj.description && <p className="link-description">{linkObj.description}</p>}
+                  </div>
+                ))}
               </div>
-            )}
-            
-            {idea.projectPdf && (
-              <div className="research-papers">
-                <h3>Project Document</h3>
-                <div className="pdf-container">
-                  <a 
-                    href={`http://localhost:5000${idea.projectPdf.path || idea.projectPdf}`} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="pdf-link"
-                  >
-                    📄 {idea.projectPdf.originalName || "View Project Document"}
-                  </a>
+            </div>
+          )}
+          
+          {/* Project Documents */}
+          {idea.projectPdf && (
+            <div className="content-box">
+              <h2>📄 Project Documents</h2>
+              <div className="pdf-container">
+                <div className="document-item">
+                  <div className="document-icon">📄</div>
+                  <div className="document-info">
+                    <a 
+                      href={`http://localhost:5000${idea.projectPdf.path || idea.projectPdf}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="pdf-link"
+                    >
+                      {idea.projectPdf.originalName || "Project Document"}
+                    </a>
+                    {idea.projectPdf.size && (
+                      <span className="file-size">
+                        ({(idea.projectPdf.size / (1024 * 1024)).toFixed(2)} MB)
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-            )}
-          </div>
-          
-          <div className="content-box">
-            <h2>📅 Date</h2>
-            <p>{new Date(idea.createdAt).toLocaleDateString()}</p>
-          </div>
+            </div>
+          )}
 
+          {/* Collaboration Section */}
           <div className="content-box">
-            <h2>⚙️ Project Info</h2>
-            <p><strong>Difficulty:</strong> {idea.difficulty}</p>
-            <p><strong>Category:</strong> {idea.category}</p>
-            {idea.estimatedDuration && (
-              <p><strong>Estimated Duration:</strong> {idea.estimatedDuration.value} {idea.estimatedDuration.unit}</p>
-            )}
-          </div>
-
-          <div className="content-box">
-            <h2>❤️ Likes & Collaboration</h2>
-            <p>
-              {idea.stats?.totalLikes || idea.likeCount || 0} likes • {' '}
-              {idea.collaborationInterests?.length || 0} collaboration interests
-            </p>
+            <h2>❤️ Engagement & Collaboration</h2>
+            <div className="engagement-stats">
+              <div className="stat-item">
+                <span className="stat-number">{idea.stats?.totalLikes || idea.likeCount || 0}</span>
+                <span className="stat-label">Likes</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-number">{idea.collaborationInterests?.length || 0}</span>
+                <span className="stat-label">Collaboration Interests</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-number">{idea.stats?.totalViews || 0}</span>
+                <span className="stat-label">Views</span>
+              </div>
+            </div>
             <button onClick={handleLike} className="like-button">
-              👍 I'm Interested!
+              👍 I'm Interested in This Project!
             </button>
           </div>
 
+          {/* Comments Section */}
           <div className="content-box">
-            <h2>💬 Comments</h2>
+            <h2>💬 Comments & Discussion</h2>
             <textarea
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Add a comment..."
+              placeholder="Share your thoughts, suggestions, or questions about this project..."
               className="comment-input"
               rows="4"
             />
             <button onClick={() => handleAddComment(null, newComment)} className="add-comment-button">
-              Add Comment
+              Post Comment
             </button>
             
             <div className="comment-list">
@@ -419,14 +638,15 @@ const ProjectPage = () => {
                   />
                 ))
               ) : (
-                <p>No comments yet.</p>
+                <p className="no-comments">No comments yet. Be the first to share your thoughts!</p>
               )}
             </div>
           </div>
         </div>
 
+        {/* Author Information Sidebar */}
         <aside className="author-box">
-          <h2>👤 Author</h2>
+          <h2>👤 Project Author</h2>
           {idea.author && (
             <div className="author-info">
               <div className="author-avatar">
@@ -434,20 +654,103 @@ const ProjectPage = () => {
                   src={
                     idea.author.profileImage 
                       ? `http://localhost:5000${idea.author.profileImage}` 
-                      : "https://via.placeholder.com/80"
+                      : "/img/author_default.jpg"
                   } 
                   alt={idea.author.authorName}
                   onError={(e) => {
-                    e.target.src = "https://via.placeholder.com/80";
+                    e.target.src = "/img/author_default.jpg";
                   }}
                 />
               </div>
-              <div className="author-text">
+              
+              <div className="author-details">
                 <h3>{idea.author.authorName}</h3>
-                <p>Email: {idea.author.authorEmail || idea.author.contactInfo?.email || 'N/A'}</p>
-                <p>Bio: {idea.author.bio || "No bio available."}</p>
-                {idea.author.organization && (
-                  <p>Organization: {idea.author.organization}</p>
+                
+                {/* Contact Information */}
+                <div className="contact-info">
+                  <div className="contact-item">
+                    <span className="contact-label">📧 Email:</span>
+                    <a href={`mailto:${idea.author.authorEmail || idea.author.contactInfo?.email}`}>
+                      {idea.author.authorEmail || idea.author.contactInfo?.email || 'Not available'}
+                    </a>
+                  </div>
+                  
+                  <div className="contact-item">
+                    <span className="contact-label">📱 Phone:</span>
+                    <span>
+                      {idea.author.phone || idea.author.contactInfo?.phone || 'Not provided'}
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Professional Information */}
+                {(idea.author.title || idea.author.organization) && (
+                  <div className="professional-info">
+                    {idea.author.title && (
+                      <p><strong>Title:</strong> {idea.author.title}</p>
+                    )}
+                    {idea.author.organization && (
+                      <p><strong>Organization:</strong> {idea.author.organization}</p>
+                    )}
+                    {idea.author.department && (
+                      <p><strong>Department:</strong> {idea.author.department}</p>
+                    )}
+                  </div>
+                )}
+                
+                {/* Bio */}
+                <div className="author-bio">
+                  <h4>About the Author</h4>
+                  <p>{idea.author.bio || "No bio available."}</p>
+                </div>
+                
+                {/* Social Media Links */}
+                {idea.author.socialMedia && idea.author.socialMedia.length > 0 && (
+                  <div className="author-social">
+                    <h4>Connect with Author</h4>
+                    {idea.author.socialMedia.map((social, index) => (
+                      <div key={index} className="social-link">
+                        <a 
+                          href={social.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="social-media-link"
+                        >
+                          {social.platform.charAt(0).toUpperCase() + social.platform.slice(1)}
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {/* Research Areas */}
+                {idea.author.researchAreas && idea.author.researchAreas.length > 0 && (
+                  <div className="research-areas">
+                    <h4>Research Areas</h4>
+                    <div className="research-tags">
+                      {idea.author.researchAreas.map((area, index) => (
+                        <span key={index} className="research-tag">{area}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Expertise */}
+                {idea.author.expertise && idea.author.expertise.length > 0 && (
+                  <div className="expertise-section">
+                    <h4>Expertise</h4>
+                    <div className="expertise-list">
+                      {idea.author.expertise.map((skill, index) => (
+                        <div key={index} className="expertise-item">
+                          <span className="skill-name">{skill.skill}</span>
+                          {skill.level && <span className="skill-level">({skill.level})</span>}
+                          {skill.yearsOfExperience && (
+                            <span className="skill-years">{skill.yearsOfExperience}+ years</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
             </div>

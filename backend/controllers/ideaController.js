@@ -43,7 +43,7 @@ exports.getAllIdeas = async (req, res) => {
     } else {
       query = Idea.find(filter)
         .populate('domain', 'title slug imageUrl')
-        .populate('author', 'authorName profileImage')
+        .populate('author', 'authorName profileImage phone socialMedia')
         .populate('createdBy', 'username fullName profileImage')
         .sort({ [sort]: order === 'desc' ? -1 : 1 })
         .limit(parseInt(limit))
@@ -85,7 +85,7 @@ exports.getIdeaById = async (req, res) => {
 
     const idea = await Idea.findById(ideaId)
       .populate('domain', 'title slug imageUrl description')
-      .populate('author', 'authorName authorEmail contactInfo profileImage bio organization')
+      .populate('author', 'authorName authorEmail contactInfo profileImage bio organization phone socialMedia')
       .populate('createdBy', 'username fullName profileImage bio')
       .populate('likes.user', 'username fullName profileImage')
       .populate('collaborationInterests.user', 'username fullName profileImage');
@@ -162,6 +162,7 @@ exports.createIdea = async (req, res) => {
       authorId,
       difficulty,
       category,
+      status,
       tags,
       relatedLinks,
       requiredSkills,
@@ -240,6 +241,7 @@ exports.createIdea = async (req, res) => {
       createdBy: req.userId,
       difficulty,
       category: category || 'Research',
+      status: status || 'Not yet started',
       projectImage,
       additionalImages,
       projectPdf,
@@ -266,7 +268,7 @@ exports.createIdea = async (req, res) => {
     // Populate the created idea
     await idea.populate([
       { path: 'domain', select: 'title slug imageUrl' },
-      { path: 'author', select: 'authorName profileImage' },
+      { path: 'author', select: 'authorName profileImage phone socialMedia' },
       { path: 'createdBy', select: 'username fullName profileImage' }
     ]);
 
@@ -376,7 +378,7 @@ exports.updateIdea = async (req, res) => {
       { new: true, runValidators: true }
     ).populate([
       { path: 'domain', select: 'title slug imageUrl' },
-      { path: 'author', select: 'authorName profileImage' },
+      { path: 'author', select: 'authorName profileImage phone socialMedia' },
       { path: 'createdBy', select: 'username fullName profileImage' }
     ]);
 
@@ -648,7 +650,7 @@ exports.getTrendingIdeas = async (req, res) => {
 // Search ideas
 exports.searchIdeas = async (req, res) => {
   try {
-    const { q: query, domain, difficulty, category, page = 1, limit = 20 } = req.query;
+    const { q: query, domain, difficulty, category, status, page = 1, limit = 20 } = req.query;
 
     if (!query || query.trim().length === 0) {
       return res.status(400).json({
@@ -661,6 +663,7 @@ exports.searchIdeas = async (req, res) => {
     if (domain) filters.domain = domain;
     if (difficulty) filters.difficulty = difficulty;
     if (category) filters.category = category;
+    if (status) filters.status = status;
 
     const ideas = await Idea.searchIdeas(query, filters, {
       limit: parseInt(limit),
@@ -672,7 +675,7 @@ exports.searchIdeas = async (req, res) => {
       data: {
         ideas,
         query,
-        filters: { domain, difficulty, category },
+        filters: { domain, difficulty, category, status },
         pagination: {
           current: parseInt(page),
           count: ideas.length
@@ -694,7 +697,7 @@ exports.searchIdeas = async (req, res) => {
 exports.getIdeasByDomain = async (req, res) => {
   try {
     const { domainId } = req.params;
-    const { difficulty, page = 1, limit = 20, sort = 'createdAt' } = req.query;
+    const { difficulty, status, page = 1, limit = 20, sort = 'createdAt' } = req.query;
 
     // Verify domain exists
     const domain = await Domain.findById(domainId);
@@ -715,9 +718,13 @@ exports.getIdeasByDomain = async (req, res) => {
     if (difficulty) {
       filter.difficulty = difficulty;
     }
+    
+    if (status) {
+      filter.status = status;
+    }
 
     const ideas = await Idea.find(filter)
-      .populate('author', 'authorName profileImage')
+      .populate('author', 'authorName profileImage phone socialMedia')
       .populate('createdBy', 'username fullName profileImage')
       .sort({ [sort]: -1 })
       .limit(parseInt(limit))

@@ -1,3 +1,4 @@
+// middleware/validation.js
 const { body, param, query, validationResult } = require('express-validator');
 
 // User validation
@@ -54,7 +55,43 @@ exports.validateChangePassword = [
     .withMessage('New password must contain at least one lowercase letter, one uppercase letter, and one number')
 ];
 
-// Domain validation with debug logging
+// FIXED: Simplified domain validation that doesn't hang
+exports.validateDomainBasic = [
+  body('title')
+    .trim()
+    .isLength({ min: 3, max: 100 })
+    .withMessage('Domain title must be between 3 and 100 characters'),
+  
+  body('description')
+    .trim()
+    .isLength({ min: 10, max: 1000 })
+    .withMessage('Description must be between 10 and 1000 characters'),
+  
+  body('category')
+    .optional()
+    .isIn(['Technology', 'Biology', 'Physics', 'Chemistry', 'Mathematics', 'Engineering', 'Medicine', 'Environment', 'Other'])
+    .withMessage('Invalid category'),
+  
+  // Basic topics validation - just check if it exists, let controller handle parsing
+  body('topics')
+    .notEmpty()
+    .withMessage('Topics are required'),
+  
+  // Validation result handler
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+    next();
+  }
+];
+
+// Keep the old complex validation for backward compatibility if needed
 exports.validateDomain = [
   body('title')
     .trim()

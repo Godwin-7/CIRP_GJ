@@ -1,354 +1,379 @@
-  const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-  const ideaSchema = new mongoose.Schema({
-    title: { 
-      type: String, 
-      required: true,
-      trim: true,
-      maxlength: 200
-    },
-    slug: {
+const ideaSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: [true, 'Title is required'],
+    trim: true,
+    minlength: [5, 'Title must be at least 5 characters'],
+    maxlength: [200, 'Title cannot exceed 200 characters']
+  },
+  description: {
+    type: String,
+    required: [true, 'Description is required'],
+    trim: true,
+    minlength: [20, 'Description must be at least 20 characters'],
+    maxlength: [2000, 'Description cannot exceed 2000 characters']
+  },
+  detailedDescription: {
+    type: String,
+    trim: true,
+    maxlength: [10000, 'Detailed description cannot exceed 10000 characters']
+  },
+  domain: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Domain',
+    required: [true, 'Domain is required']
+  },
+  author: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Author',
+    required: [true, 'Author is required']
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  difficulty: {
+    type: String,
+    required: [true, 'Difficulty level is required'],
+    enum: {
+      values: ['easy', 'medium', 'hard'],
+      message: 'Difficulty must be easy, medium, or hard'
+    }
+  },
+  category: {
+    type: String,
+    required: true,
+    enum: ['Research', 'Development', 'Innovation', 'Improvement', 'Analysis', 'Other'],
+    default: 'Research'
+  },
+  status: {
+    type: String,
+    enum: ['Not yet started', 'In progress', 'Collaboration needed', 'Completed', 'On hold', 'Cancelled'],
+    default: 'Not yet started'
+  },
+  projectImage: {
+    type: String,
+    default: '/uploads/defaults/default-project.png'
+  },
+  additionalImages: [{
+    url: String,
+    caption: String,
+    uploadedAt: { type: Date, default: Date.now }
+  }],
+  projectPdf: {
+    filename: String,
+    originalName: String,
+    path: String,
+    size: Number,
+    uploadedAt: { type: Date, default: Date.now }
+  },
+  tags: [{
+    type: String,
+    trim: true
+  }],
+  relatedLinks: [{
+    title: String,
+    url: {
       type: String,
-      unique: true,
-      lowercase: true
+      match: [/^https?:\/\/.+/, 'Please enter a valid URL']
     },
-    description: { 
-      type: String, 
-      required: true,
-      maxlength: 2000
-    },
-    detailedDescription: {
+    description: String,
+    type: {
       type: String,
-      maxlength: 10000
+      enum: ['website', 'github', 'paper', 'video', 'documentation', 'other'],
+      default: 'other'
+    }
+  }],
+  requiredSkills: [{
+    skill: String,
+    level: {
+      type: String,
+      enum: ['beginner', 'intermediate', 'advanced', 'expert'],
+      default: 'intermediate'
+    }
+  }],
+  estimatedDuration: {
+    value: Number,
+    unit: {
+      type: String,
+      enum: ['days', 'weeks', 'months', 'years'],
+      default: 'weeks'
+    }
+  },
+  scope: {
+    shortTerm: [String],
+    longTerm: [String],
+    limitations: [String],
+    assumptions: [String]
+  },
+  currentResearch: {
+    status: String,
+    findings: [String],
+    challenges: [String],
+    nextSteps: [String]
+  },
+  futureEnhancements: [{
+    title: String,
+    description: String,
+    priority: {
+      type: String,
+      enum: ['low', 'medium', 'high'],
+      default: 'medium'
     },
-    domain: {
+    estimatedEffort: String
+  }],
+  likes: [{
+    user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Domain',
-      required: true
+      ref: 'User'
     },
-    author: {
+    likedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  views: [{
+    user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Author',
-      required: true
+      ref: 'User'
     },
-    createdBy: {
+    viewedAt: {
+      type: Date,
+      default: Date.now
+    },
+    duration: Number, // in seconds
+    source: String // referrer
+  }],
+  collaborationInterests: [{
+    user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true
     },
-    
-    // Project Details Section
-    projectImage: {
-      type: String,
-      default: "/uploads/defaults/default-project.png"
-    },
-    additionalImages: [{
-      url: String,
-      caption: String,
-      uploadedAt: { type: Date, default: Date.now }
-    }],
-    relatedLinks: [{
-      title: String,
-      url: String,
-      description: String,
-      type: { 
-        type: String, 
-        enum: ['website', 'github', 'paper', 'video', 'documentation', 'other'],
-        default: 'other'
-      }
-    }],
-    researchPapers: [{
-      title: String,
-      authors: [String],
-      journal: String,
-      year: Number,
-      doi: String,
-      url: String,
-      pdfPath: String
-    }],
-    projectPdf: {
-      filename: String,
-      originalName: String,
-      path: String,
-      size: Number,
-      uploadedAt: { type: Date, default: Date.now }
-    },
-    
-    // Collaboration and Interest
-    likes: [{
-      user: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
-      },
-      likedAt: { type: Date, default: Date.now }
-    }],
-    collaborationInterests: [{
-      user: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
-      },
-      message: String,
-      skills: [String],
-      interestedAt: { type: Date, default: Date.now },
-      status: {
-        type: String,
-        enum: ['pending', 'accepted', 'declined'],
-        default: 'pending'
-      }
-    }],
-    
-    // Project Status and Progress
+    message: String,
+    skills: [String],
     status: {
       type: String,
-      enum: ['idea', 'planning', 'in-progress', 'testing', 'completed', 'on-hold', 'abandoned'],
-      default: 'idea'
+      enum: ['pending', 'accepted', 'declined'],
+      default: 'pending'
     },
-    difficulty: {
-      type: String,
-      enum: ['easy', 'medium', 'hard'],
-      required: true
-    },
-    estimatedDuration: {
-      value: Number,
-      unit: { type: String, enum: ['days', 'weeks', 'months', 'years'], default: 'weeks' }
-    },
-    requiredSkills: [{
-      skill: String,
-      level: { type: String, enum: ['beginner', 'intermediate', 'advanced'], default: 'intermediate' }
-    }],
-    requiredResources: [{
-      resource: String,
-      quantity: String,
-      cost: Number,
-      currency: { type: String, default: 'USD' },
-      optional: { type: Boolean, default: false }
-    }],
-    
-    // Research and Development
-    currentResearch: {
-      overview: String,
-      keyFindings: [String],
-      challenges: [String],
-      nextSteps: [String],
-      lastUpdated: Date
-    },
-    futureEnhancements: [{
-      title: String,
-      description: String,
-      priority: { type: String, enum: ['low', 'medium', 'high'], default: 'medium' },
-      estimatedEffort: String
-    }],
-    scope: {
-      shortTerm: [String],
-      longTerm: [String],
-      limitations: [String],
-      assumptions: [String]
-    },
-    
-    // Metadata and Analytics
-    views: [{
-      user: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
-      },
-      viewedAt: { type: Date, default: Date.now },
-      duration: Number, // in seconds
-      source: String // where they came from
-    }],
-    tags: [{
-      type: String,
-      trim: true,
-      maxlength: 30
-    }],
-    category: {
-      type: String,
-      enum: ['Research', 'Development', 'Innovation', 'Improvement', 'Analysis', 'Other'],
-      default: 'Research'
-    },
-    
-    // Moderation and Visibility
-    isPublic: {
-      type: Boolean,
-      default: true
-    },
-    isActive: {
-      type: Boolean,
-      default: true
-    },
-    isFeatured: {
-      type: Boolean,
-      default: false
-    },
-    moderationStatus: {
-      type: String,
-      enum: ['pending', 'approved', 'rejected', 'under_review'],
-      default: 'approved'
-    },
-    moderationNotes: String,
-    
-    // Statistics
-    stats: {
-      totalViews: { type: Number, default: 0 },
-      uniqueViews: { type: Number, default: 0 },
-      totalLikes: { type: Number, default: 0 },
-      totalComments: { type: Number, default: 0 },
-      totalCollaborators: { type: Number, default: 0 },
-      shareCount: { type: Number, default: 0 }
+    expressedAt: {
+      type: Date,
+      default: Date.now
     }
-  }, { 
-    timestamps: true 
-  });
+  }],
+  comments: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Comment'
+  }],
+  moderationStatus: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected', 'flagged'],
+    default: 'approved'
+  },
+  moderationNotes: String,
+  isPublic: {
+    type: Boolean,
+    default: true
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  featured: {
+    isFeatured: { type: Boolean, default: false },
+    featuredAt: Date,
+    featuredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+  },
+  stats: {
+    totalViews: { type: Number, default: 0 },
+    totalLikes: { type: Number, default: 0 },
+    totalComments: { type: Number, default: 0 },
+    totalCollaborationInterests: { type: Number, default: 0 }
+  }
+}, { 
+  timestamps: true 
+});
 
-  // Create slug from title before saving
-  ideaSchema.pre('save', function(next) {
-    if (this.isModified('title')) {
-      this.slug = this.title
-        .toLowerCase()
-        .replace(/[^a-zA-Z0-9]/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '');
-    }
-    next();
-  });
+// Indexes for better query performance
+ideaSchema.index({ title: 'text', description: 'text', tags: 'text' });
+ideaSchema.index({ domain: 1, difficulty: 1 });
+ideaSchema.index({ author: 1 });
+ideaSchema.index({ createdBy: 1 });
+ideaSchema.index({ status: 1 });
+ideaSchema.index({ category: 1 });
+ideaSchema.index({ moderationStatus: 1, isActive: 1, isPublic: 1 });
+ideaSchema.index({ createdAt: -1 });
+ideaSchema.index({ 'stats.totalLikes': -1 });
+ideaSchema.index({ 'stats.totalViews': -1 });
 
-  // Update stats before saving
-  ideaSchema.pre('save', function(next) {
-    this.stats.totalLikes = this.likes.length;
-    this.stats.totalCollaborators = this.collaborationInterests.filter(ci => ci.status === 'accepted').length;
-    next();
-  });
+// Virtual properties
+ideaSchema.virtual('likeCount').get(function() {
+  return this.likes ? this.likes.length : 0;
+});
 
-  // Virtual for like count
-  ideaSchema.virtual('likeCount').get(function() {
-    return this.likes.length;
-  });
+ideaSchema.virtual('viewCount').get(function() {
+  return this.views ? this.views.length : 0;
+});
 
-  // Virtual for collaboration interest count
-  ideaSchema.virtual('collaborationCount').get(function() {
-    return this.collaborationInterests.length;
-  });
+ideaSchema.virtual('collaborationCount').get(function() {
+  return this.collaborationInterests ? this.collaborationInterests.length : 0;
+});
 
-  // Virtual for URL
-  ideaSchema.virtual('url').get(function() {
-    return `/api/ideas/${this._id}`;
-  });
+ideaSchema.virtual('commentCount').get(function() {
+  return this.comments ? this.comments.length : 0;
+});
 
-  // Instance method to check if user liked
-  ideaSchema.methods.isLikedBy = function(userId) {
-    return this.likes.some(like => like.user.toString() === userId.toString());
-  };
+// Methods
+ideaSchema.methods.isLikedBy = function(userId) {
+  return this.likes.some(like => like.user.toString() === userId);
+};
 
-  // Instance method to toggle like
-  ideaSchema.methods.toggleLike = function(userId) {
-    const existingLike = this.likes.find(like => like.user.toString() === userId.toString());
-    
-    if (existingLike) {
-      this.likes.pull(existingLike._id);
-      return false; // unliked
-    } else {
-      this.likes.push({ user: userId });
-      return true; // liked
-    }
-  };
+ideaSchema.methods.toggleLike = function(userId) {
+  const existingLikeIndex = this.likes.findIndex(like => 
+    like.user.toString() === userId
+  );
+  
+  if (existingLikeIndex > -1) {
+    // Unlike
+    this.likes.splice(existingLikeIndex, 1);
+    this.stats.totalLikes = Math.max(0, this.stats.totalLikes - 1);
+    return false;
+  } else {
+    // Like
+    this.likes.push({ user: userId });
+    this.stats.totalLikes += 1;
+    return true;
+  }
+};
 
-  // Instance method to add view
-  ideaSchema.methods.addView = function(userId, duration = 0, source = 'direct') {
-    // Update unique views count
-    const existingView = this.views.find(view => view.user && view.user.toString() === userId.toString());
-    if (!existingView) {
-      this.stats.uniqueViews += 1;
-    }
-    
-    // Add view record
-    this.views.push({
-      user: userId,
-      duration,
-      source
+ideaSchema.methods.addView = function(userId, duration = 0, source = 'direct') {
+  // Only add view if user hasn't viewed in the last hour
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  const recentView = this.views.find(view => 
+    view.user.toString() === userId && view.viewedAt > oneHourAgo
+  );
+  
+  if (!recentView) {
+    this.views.push({ 
+      user: userId, 
+      duration, 
+      source,
+      viewedAt: new Date()
     });
-    
     this.stats.totalViews += 1;
+  }
+};
+
+ideaSchema.methods.canEdit = function(userId) {
+  return this.createdBy.toString() === userId;
+};
+
+// Static methods
+ideaSchema.statics.searchIdeas = function(query, filters = {}, options = {}) {
+  const searchFilter = {
+    ...filters,
+    $text: { $search: query }
   };
 
-  // Static method to search ideas
-  ideaSchema.statics.searchIdeas = function(query, filters = {}, options = {}) {
-    const searchRegex = new RegExp(query, 'i');
-    const filter = {
-      isActive: true,
-      isPublic: true,
-      moderationStatus: 'approved',
-      $or: [
-        { title: searchRegex },
-        { description: searchRegex },
-        { tags: { $in: [searchRegex] } }
-      ],
-      ...filters
-    };
+  return this.find(searchFilter, { score: { $meta: "textScore" } })
+    .populate('domain', 'title slug imageUrl')
+    .populate('author', 'authorName profileImage')
+    .populate('createdBy', 'username fullName profileImage')
+    .sort({ score: { $meta: "textScore" } })
+    .limit(options.limit || 20)
+    .skip(options.skip || 0);
+};
 
-    return this.find(filter)
-      .populate('domain', 'title slug')
-      .populate('author', 'authorName authorEmail profileImage')
-      .populate('createdBy', 'username fullName profileImage')
-      .sort(options.sort || { createdAt: -1 })
-      .limit(options.limit || 20)
-      .skip(options.skip || 0);
-  };
-
-  // Static method to get trending ideas
-  ideaSchema.statics.getTrending = function(days = 7, limit = 10) {
-    const dateThreshold = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-    
-    return this.aggregate([
-      {
-        $match: {
-          isActive: true,
-          isPublic: true,
-          moderationStatus: 'approved',
-          createdAt: { $gte: dateThreshold }
-        }
-      },
-      {
-        $addFields: {
-          trendingScore: {
-            $add: [
-              { $multiply: ['$stats.totalLikes', 3] },
-              { $multiply: ['$stats.totalComments', 2] },
-              '$stats.totalViews'
-            ]
-          }
-        }
-      },
-      { $sort: { trendingScore: -1 } },
-      { $limit: limit },
-      {
-        $lookup: {
-          from: 'domains',
-          localField: 'domain',
-          foreignField: '_id',
-          as: 'domain'
-        }
-      },
-      {
-        $lookup: {
-          from: 'authors',
-          localField: 'author',
-          foreignField: '_id',
-          as: 'author'
+ideaSchema.statics.getTrending = function(days = 7, limit = 10) {
+  const dateThreshold = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  
+  return this.aggregate([
+    {
+      $match: {
+        isActive: true,
+        isPublic: true,
+        moderationStatus: 'approved',
+        createdAt: { $gte: dateThreshold }
+      }
+    },
+    {
+      $addFields: {
+        trendingScore: {
+          $add: [
+            { $multiply: ['$stats.totalLikes', 3] },
+            { $multiply: ['$stats.totalViews', 1] },
+            { $multiply: ['$stats.totalComments', 5] },
+            { $multiply: ['$stats.totalCollaborationInterests', 10] }
+          ]
         }
       }
-    ]);
-  };
+    },
+    { $sort: { trendingScore: -1 } },
+    { $limit: limit },
+    {
+      $lookup: {
+        from: 'domains',
+        localField: 'domain',
+        foreignField: '_id',
+        as: 'domain'
+      }
+    },
+    {
+      $lookup: {
+        from: 'authors',
+        localField: 'author',
+        foreignField: '_id',
+        as: 'author'
+      }
+    },
+    { $unwind: '$domain' },
+    { $unwind: '$author' }
+  ]);
+};
 
-  // Indexes for better performance
-  ideaSchema.index({ title: 'text', description: 'text', tags: 'text' });
-  ideaSchema.index({ domain: 1, difficulty: 1, isActive: 1 });
-  ideaSchema.index({ createdBy: 1 });
-  ideaSchema.index({ author: 1 });
-  ideaSchema.index({ status: 1, isActive: 1 });
-  ideaSchema.index({ createdAt: -1 });
-  ideaSchema.index({ 'stats.totalLikes': -1 });
-  ideaSchema.index({ 'stats.totalViews': -1 });
-  ideaSchema.index({ slug: 1 });
+ideaSchema.statics.getFeatured = function(limit = 5) {
+  return this.find({ 
+    'featured.isFeatured': true,
+    isActive: true,
+    isPublic: true,
+    moderationStatus: 'approved'
+  })
+  .populate('domain', 'title slug imageUrl')
+  .populate('author', 'authorName profileImage')
+  .sort({ 'featured.featuredAt': -1 })
+  .limit(limit);
+};
 
-  const Idea = mongoose.model("Idea", ideaSchema);
+ideaSchema.statics.getRecentlyAdded = function(limit = 10) {
+  return this.find({
+    isActive: true,
+    isPublic: true,
+    moderationStatus: 'approved'
+  })
+  .populate('domain', 'title slug imageUrl')
+  .populate('author', 'authorName profileImage')
+  .sort({ createdAt: -1 })
+  .limit(limit);
+};
 
-  module.exports = Idea;
+// Pre-save middleware to update stats
+ideaSchema.pre('save', function(next) {
+  // Update stats based on actual array lengths
+  this.stats.totalLikes = this.likes.length;
+  this.stats.totalViews = this.views.length;
+  this.stats.totalCollaborationInterests = this.collaborationInterests.length;
+  
+  next();
+});
+
+// Ensure virtual fields are included in JSON
+ideaSchema.set('toJSON', { virtuals: true });
+ideaSchema.set('toObject', { virtuals: true });
+
+const Idea = mongoose.model("Idea", ideaSchema);
+
+module.exports = Idea;

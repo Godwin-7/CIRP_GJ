@@ -1,4 +1,4 @@
-// UserForm.jsx
+// UserForm.jsx - Enhanced with file size validation
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -14,6 +14,7 @@ const UserForm = () => {
     detailedDescription: "",
     difficulty: "",
     category: "Research",
+    status: "Not yet started",
     tags: "",
     requiredSkills: "",
     domainId: "",
@@ -24,6 +25,10 @@ const UserForm = () => {
     selectedAuthorId: "",
     authorName: "",
     authorEmail: "",
+    authorPhone: "",
+    authorPhoto: null,
+    socialMediaLink: "",
+    socialMediaType: "whatsapp",
     professionalDetails: "",
     estimatedDuration: { value: "", unit: "weeks" },
     scope: { shortTerm: "", longTerm: "", limitations: "", assumptions: "" },
@@ -31,6 +36,28 @@ const UserForm = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formMessage, setFormMessage] = useState({ type: "", message: "" });
+
+  // File size constants (in bytes)
+  const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+  const MAX_PDF_SIZE = 10 * 1024 * 1024; // 10MB
+
+  // Helper function to format file size
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  // Helper function to validate file size
+  const validateFileSize = (file, maxSize, fileType) => {
+    if (file && file.size > maxSize) {
+      const maxSizeFormatted = formatFileSize(maxSize);
+      const fileSizeFormatted = formatFileSize(file.size);
+      throw new Error(`${fileType} file size (${fileSizeFormatted}) exceeds maximum limit of ${maxSizeFormatted}`);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -109,12 +136,61 @@ const UserForm = () => {
 
   const handleSingleFileChange = (e) => {
     const { name, files } = e.target;
-    setFormData({ ...formData, [name]: files[0] });
+    const file = files[0];
+    
+    if (file) {
+      try {
+        // Validate file size based on file type
+        if (name === 'projectImage' || name === 'authorPhoto') {
+          validateFileSize(file, MAX_IMAGE_SIZE, 'Image');
+        } else if (name === 'projectPdf') {
+          validateFileSize(file, MAX_PDF_SIZE, 'PDF');
+        }
+        
+        setFormData({ ...formData, [name]: file });
+        
+        // Clear any previous error messages
+        if (formMessage.type === 'error' && formMessage.message.includes('file size')) {
+          setFormMessage({ type: "", message: "" });
+        }
+      } catch (error) {
+        // Clear the file input
+        e.target.value = '';
+        setFormMessage({ type: "error", message: error.message });
+      }
+    } else {
+      setFormData({ ...formData, [name]: null });
+    }
   };
 
   const handleMultipleFileChange = (e) => {
     const { name, files } = e.target;
-    setFormData({ ...formData, [name]: Array.from(files) });
+    const fileArray = Array.from(files);
+    
+    try {
+      // Validate each file size for additional images
+      if (name === 'additionalImages') {
+        fileArray.forEach((file, index) => {
+          validateFileSize(file, MAX_IMAGE_SIZE, `Additional image ${index + 1}`);
+        });
+        
+        // Check total number of additional images (max 5)
+        if (fileArray.length > 5) {
+          throw new Error('Maximum 5 additional images allowed');
+        }
+      }
+      
+      setFormData({ ...formData, [name]: fileArray });
+      
+      // Clear any previous error messages
+      if (formMessage.type === 'error' && formMessage.message.includes('file size')) {
+        setFormMessage({ type: "", message: "" });
+      }
+    } catch (error) {
+      // Clear the file input
+      e.target.value = '';
+      setFormMessage({ type: "error", message: error.message });
+    }
   };
 
   const handleNestedChange = (parentField, childField, value) => {
@@ -181,6 +257,26 @@ const UserForm = () => {
       errors.push("Please select an author or choose to add a new one");
     }
 
+    // File size validation (double-check before submission)
+    try {
+      if (formData.projectImage) {
+        validateFileSize(formData.projectImage, MAX_IMAGE_SIZE, 'Project image');
+      }
+      if (formData.authorPhoto) {
+        validateFileSize(formData.authorPhoto, MAX_IMAGE_SIZE, 'Author photo');
+      }
+      if (formData.projectPdf) {
+        validateFileSize(formData.projectPdf, MAX_PDF_SIZE, 'Project PDF');
+      }
+      if (formData.additionalImages && formData.additionalImages.length > 0) {
+        formData.additionalImages.forEach((file, index) => {
+          validateFileSize(file, MAX_IMAGE_SIZE, `Additional image ${index + 1}`);
+        });
+      }
+    } catch (error) {
+      errors.push(error.message);
+    }
+
     return errors;
   };
 
@@ -204,14 +300,32 @@ const UserForm = () => {
       let authorId;
       if (formData.selectedAuthorId === "new") {
         console.log("Creating new author...");
-        const authorResponse = await axios.post("http://localhost:5000/api/authors", {
-          authorName: formData.authorName.trim(),
-          authorEmail: formData.authorEmail.trim(),
-          bio: formData.professionalDetails.trim() || undefined,
-        }, {
+        
+        // Create FormData for author with photo
+        const authorFormData = new FormData();
+        authorFormData.append("authorName", formData.authorName.trim());
+        authorFormData.append("authorEmail", formData.authorEmail.trim());
+        authorFormData.append("bio", formData.professionalDetails.trim() || "");
+        
+        if (formData.authorPhone.trim()) {
+          authorFormData.append("phone", formData.authorPhone.trim());
+        }
+        
+        if (formData.socialMediaLink.trim()) {
+          authorFormData.append("socialMedia", JSON.stringify([{
+            platform: formData.socialMediaType,
+            url: formData.socialMediaLink.trim()
+          }]));
+        }
+        
+        if (formData.authorPhoto) {
+          authorFormData.append("authorPhoto", formData.authorPhoto);
+        }
+        
+        const authorResponse = await axios.post("http://localhost:5000/api/authors", authorFormData, {
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json"
+            "Content-Type": "multipart/form-data"
           }
         });
         
@@ -240,6 +354,7 @@ const UserForm = () => {
       formDataToSend.append("authorId", authorId);
       formDataToSend.append("difficulty", formData.difficulty);
       formDataToSend.append("category", formData.category);
+      formDataToSend.append("status", formData.status);
 
       // Optional detailed description
       if (formData.detailedDescription.trim()) {
@@ -330,6 +445,7 @@ const UserForm = () => {
         authorId,
         difficulty: formData.difficulty,
         category: formData.category,
+        status: formData.status,
         hasProjectImage: !!formData.projectImage,
         hasProjectPdf: !!formData.projectPdf,
         additionalImagesCount: formData.additionalImages?.length || 0
@@ -471,6 +587,18 @@ const UserForm = () => {
             </div>
 
             <div className="form-group">
+              <label>Project Status</label>
+              <select name="status" value={formData.status} onChange={handleChange}>
+                <option value="Not yet started">Not yet started</option>
+                <option value="In progress">In progress</option>
+                <option value="Collaboration needed">Collaboration needed</option>
+                <option value="Completed">Completed</option>
+                <option value="On hold">On hold</option>
+                <option value="Cancelled">Cancelled</option>
+              </select>
+            </div>
+
+            <div className="form-group">
               <label>Tags (comma-separated)</label>
               <input 
                 type="text" 
@@ -517,16 +645,25 @@ const UserForm = () => {
             <div className="form-group">
               <label>Project Main Image (optional)</label>
               <input type="file" name="projectImage" accept="image/*" onChange={handleSingleFileChange} />
+              <small style={{ color: '#666', fontSize: '12px' }}>
+                Maximum file size: {formatFileSize(MAX_IMAGE_SIZE)}. Supported formats: JPG, PNG, GIF, WebP
+              </small>
             </div>
 
             <div className="form-group">
               <label>Additional Images (optional, max 5)</label>
               <input type="file" name="additionalImages" accept="image/*" onChange={handleMultipleFileChange} multiple />
+              <small style={{ color: '#666', fontSize: '12px' }}>
+                Maximum 5 images, each up to {formatFileSize(MAX_IMAGE_SIZE)}. Supported formats: JPG, PNG, GIF, WebP
+              </small>
             </div>
 
             <div className="form-group">
               <label>Research Paper/Documentation (PDF, optional)</label>
               <input type="file" name="projectPdf" accept="application/pdf" onChange={handleSingleFileChange} />
+              <small style={{ color: '#666', fontSize: '12px' }}>
+                Maximum file size: {formatFileSize(MAX_PDF_SIZE)}. Only PDF files are allowed
+              </small>
             </div>
 
             <div className="form-group">
@@ -699,6 +836,57 @@ const UserForm = () => {
                     required 
                     placeholder="author@example.com"
                   />
+                </div>
+                <div className="form-group">
+                  <label>Author Phone (optional)</label>
+                  <input 
+                    type="tel" 
+                    name="authorPhone" 
+                    value={formData.authorPhone} 
+                    onChange={handleChange} 
+                    placeholder="+1 234 567 8900"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Author Photo (optional)</label>
+                  <input 
+                    type="file" 
+                    name="authorPhoto" 
+                    accept="image/*" 
+                    onChange={handleSingleFileChange} 
+                  />
+                  <small style={{ color: '#666', fontSize: '12px' }}>
+                    Maximum file size: {formatFileSize(MAX_IMAGE_SIZE)}. If no photo is provided, a default author image will be used.
+                  </small>
+                </div>
+                <div className="form-group">
+                  <label>Social Media Link (optional)</label>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <select 
+                      name="socialMediaType" 
+                      value={formData.socialMediaType} 
+                      onChange={handleChange}
+                      style={{ width: '30%' }}
+                    >
+                      <option value="whatsapp">WhatsApp</option>
+                      <option value="instagram">Instagram</option>
+                      <option value="telegram">Telegram</option>
+                      <option value="twitter">Twitter</option>
+                      <option value="linkedin">LinkedIn</option>
+                      <option value="facebook">Facebook</option>
+                      <option value="youtube">YouTube</option>
+                      <option value="other">Other</option>
+                    </select>
+                    <input 
+                      type="url" 
+                      name="socialMediaLink" 
+                      value={formData.socialMediaLink} 
+                      onChange={handleChange} 
+                      placeholder="https://..."
+                      style={{ width: '70%' }}
+                    />
+                  </div>
+                  <small>Provide a social media link for easy contact (optional).</small>
                 </div>
                 <div className="form-group">
                   <label>Professional Details</label>
