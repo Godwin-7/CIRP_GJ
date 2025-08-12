@@ -80,12 +80,15 @@ exports.register = async (req, res) => {
   }
 };
 
-// Login User
+// Login User - FIXED VERSION
 exports.login = async (req, res) => {
   try {
+    console.log('Login attempt with:', { email: req.body.email, hasPassword: !!req.body.password });
+
     // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('Validation errors:', errors.array());
       return res.status(400).json({
         success: false,
         message: 'Validation failed',
@@ -95,9 +98,20 @@ exports.login = async (req, res) => {
 
     const { email, password } = req.body;
 
+    if (!email || !password) {
+      console.log('Missing email or password');
+      return res.status(400).json({
+        success: false,
+        message: 'Email and password are required'
+      });
+    }
+
     // Find user by email or username
     const user = await User.findByEmailOrUsername(email);
+    console.log('User found:', user ? `Yes (${user.username})` : 'No');
+    
     if (!user) {
+      console.log('No user found with email/username:', email);
       return res.status(400).json({
         success: false,
         message: 'Invalid credentials'
@@ -106,6 +120,7 @@ exports.login = async (req, res) => {
 
     // Check if user is active
     if (!user.isActive) {
+      console.log('User account is deactivated:', user.username);
       return res.status(400).json({
         success: false,
         message: 'Account is deactivated. Please contact support.'
@@ -113,8 +128,12 @@ exports.login = async (req, res) => {
     }
 
     // Check password
+    console.log('Comparing password...');
     const isPasswordValid = await user.comparePassword(password);
+    console.log('Password valid:', isPasswordValid);
+    
     if (!isPasswordValid) {
+      console.log('Invalid password for user:', user.username);
       return res.status(400).json({
         success: false,
         message: 'Invalid credentials'
@@ -123,26 +142,35 @@ exports.login = async (req, res) => {
 
     // Generate token
     const token = generateToken(user._id);
+    console.log('Token generated successfully');
 
     // Update last login
     user.lastLogin = new Date();
     await user.save();
 
+    // FIXED: Match the expected frontend response structure
+    const responseData = {
+      token,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        fullName: user.fullName,
+        profileImage: user.profileImage,
+        isAdmin: user.isAdmin,
+        lastLogin: user.lastLogin
+      }
+    };
+
+    console.log('Login successful for user:', user.username);
+
+    // Return response in the format expected by frontend
     res.json({
       success: true,
       message: 'Login successful',
-      data: {
-        token,
-        user: {
-          id: user._id,
-          username: user.username,
-          email: user.email,
-          fullName: user.fullName,
-          profileImage: user.profileImage,
-          isAdmin: user.isAdmin,
-          lastLogin: user.lastLogin
-        }
-      }
+      token: responseData.token,  // Add token at root level for frontend compatibility
+      data: responseData,
+      user: responseData.user     // Add user at root level for frontend compatibility
     });
 
   } catch (error) {
