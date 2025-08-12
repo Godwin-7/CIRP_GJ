@@ -3,7 +3,7 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./components/Pages/HomePage/Home/Home";
 import AboutUs from "./components/Pages/HomePage/AboutUs/AboutUs";
-import TextShpere from "./components/Pages/HomePage/TextShpere/TextShpere";
+import Contributors from "./components/Pages/HomePage/Conributors/Contributors";
 import Ideas from "./components/Pages/HomePage/Ideas/Ideas";
 import ContactForm from "./components/Pages/HomePage/ContactForm/ContactForm";
 import DevelopersSection from "./components/Pages/HomePage/Developers/Developers";
@@ -33,7 +33,8 @@ function App() {
               <Home />
               <AboutUs />
               <Ideas />
-              <TextShpere />
+              
+                <Contributors />
               <ContactForm />
               <DevelopersSection />
               <Chatbot />

@@ -10,7 +10,7 @@ Card Background: #050f38ff (still slightly lighter than body)
 
 Title / Neon Cyan: #0ef
 
-Accent Purple: #7300ffb3
+Accent Purple: #0b0b91ff
 
 Accent Blue: #5004ff63
 
@@ -18,7 +18,7 @@ Text Primary: #e6f0ff
 
 Text Secondary: #b8c6e8
 
-Border / Divider: #29d4e4ff
+Border / Divider: #00eaffff
 
 Glow Blue: rgba(0, 247, 255, 1)
 
