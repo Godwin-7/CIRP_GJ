@@ -6,37 +6,78 @@ import './AboutUs.css';
 
 const AboutUs = () => {
   useEffect(() => {
-    // Initialize Swiper for responsive view
-    new Swiper('.swiper-container', {
-      slidesPerView: 1,
-      spaceBetween: 10,
-      pagination: {
-        el: '.swiper-pagination',
-        clickable: true,
-      },
-      breakpoints: {
-        640: {
-          slidesPerView: 1,
-        },
-        768: {
-          slidesPerView: 2,
-        },
-        1024: {
-          slidesPerView: 3,
-        },
-      },
-    });
+    // Initialize Swiper for responsive view with proper timing and error handling
+    const initSwiper = () => {
+      const swiperElement = document.querySelector('.about-swiper-container');
+      const swiperWrapper = document.querySelector('.swiper-wrapper');
+      const swiperPagination = document.querySelector('.swiper-pagination');
+      
+      // Check if all required elements exist and are properly rendered
+      if (swiperElement && swiperWrapper && swiperPagination && 
+          swiperElement.offsetParent !== null) { // Ensure element is visible
+        
+        try {
+          const swiper = new Swiper(swiperElement, {
+            slidesPerView: 1,
+            spaceBetween: 10,
+            pagination: {
+              el: '.about-swiper-pagination',
+              clickable: true,
+            },
+            breakpoints: {
+              640: {
+                slidesPerView: 1,
+              },
+              768: {
+                slidesPerView: 2,
+              },
+              1024: {
+                slidesPerView: 3,
+              },
+            },
+          });
+
+          // Store swiper instance for cleanup
+          return swiper;
+        } catch (error) {
+          console.warn('Swiper initialization failed:', error);
+          return null;
+        }
+      }
+      return null;
+    };
+
+    // Try to initialize immediately
+    let swiper = initSwiper();
+    
+    // If failed, try again after a short delay
+    let timeoutId;
+    if (!swiper) {
+      timeoutId = setTimeout(() => {
+        swiper = initSwiper();
+      }, 100);
+    }
+
+    // Cleanup function
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      if (swiper && swiper.destroy) {
+        swiper.destroy(true, true);
+      }
+    };
   }, []);
 
   return (
-    <section id="three">
+    <section id="about">
       <section id="aboutUs">
-      <h1 id="abt-us">About-us</h1>
+      <h1 id="about-us-title">About-us</h1>
       
       {/* Desktop view */}
-      <div className="abt-wrapper">
+      <div className="about-wrapper">
         <img src="images/network.svg" alt="Pricing Image" />
-        <div className="abt-content">
+        <div className="about-content">
           <h3>Project Showcase and Collaboration :</h3>
           <p>
           Our platform allows innovators, researchers, and creators to showcase their projects or ideas in various fields. 
@@ -45,9 +86,9 @@ const AboutUs = () => {
         </div>
       </div>
       
-      <div className="abt-wrapper">
+      <div className="about-wrapper">
         <img src="images/teamwork.svg" alt="Commodities Image" />
-        <div className="abt-content content-2">
+        <div className="about-content about-content-2">
           <h3>Expert Mentorship and Guidance :</h3>
           <p>
           Gain access to a diverse pool of experts from different industries who are ready to guide and mentor you through your project journey. 
@@ -56,9 +97,9 @@ const AboutUs = () => {
         </div>
       </div>
       
-      <div className="abt-wrapper">
+      <div className="about-wrapper">
         <img src="images/analysis.svg" alt="Waste Image" />
-        <div className="abt-content content-3">
+        <div className="about-content about-content-3">
           <h3>Idea Validation and Market Readiness :</h3>
           <p>
           Validate your ideas with real-time feedback from industry professionals and collaborators. 
@@ -68,19 +109,19 @@ const AboutUs = () => {
       </div>
 
       {/* Mobile responsive view with Swiper */}
-      <div className="resp-abtus">
-        <h2 id="abt-us">About-us</h2>
-        <div className="swiper-container">
+      <div className="about-resp-abtus">
+        <h2 id="about-us-mobile-title">About-us</h2>
+        <div className="about-swiper-container">
           <div className="swiper-wrapper">
             <div className="swiper-slide">
-              <div className="abt-card">
-                <div className="at-card-img">
+              <div className="about-card">
+                <div className="about-card-img">
                   <img src="images/pricing.svg" alt="Pricing Image" />
                 </div>
-                <div className="abt-card-heading">
+                <div className="about-card-heading">
                   <h3>Pricing</h3>
                 </div>
-                <div className="abt-card-text">
+                <div className="about-card-text">
                   <p>
                     We offer standardized pricing in every city across all commodities.
                     Each commodity would have fixed price of it per unit. The price we fix keeps in mind your satisfaction.
@@ -91,14 +132,14 @@ const AboutUs = () => {
             </div>
             
             <div className="swiper-slide">
-              <div className="abt-card" style={{ borderColor: "#FFC906" }}>
-                <div className="at-card-img" style={{ backgroundColor: "#FFC906" }}>
+              <div className="about-card" style={{ borderColor: "#FFC906" }}>
+                <div className="about-card-img" style={{ backgroundColor: "#FFC906" }}>
                   <img src="images/cwa.svg" alt="Commodities Image" />
                 </div>
-                <div className="abt-card-heading">
+                <div className="about-card-heading">
                   <h3>Commodities we accept</h3>
                 </div>
-                <div className="abt-card-text">
+                <div className="about-card-text">
                   <p>
                     Whether it be paper,plastic,steel or old iron we accept everything that's recyclable.
                     To be more specific we accept all paper items, all cardboard items,all metal items inculding tin,
@@ -109,14 +150,14 @@ const AboutUs = () => {
             </div>
             
             <div className="swiper-slide">
-              <div className="abt-card" style={{ borderColor: "#2B77B5" }}>
-                <div className="at-card-img" style={{ backgroundColor: "#2B77B5" }}>
+              <div className="about-card" style={{ borderColor: "#2B77B5" }}>
+                <div className="about-card-img" style={{ backgroundColor: "#2B77B5" }}>
                   <img src="images/wwdwyw.svg" alt="Waste Image" />
                 </div>
-                <div className="abt-card-heading">
+                <div className="about-card-heading">
                   <h3>What we do with your waste?</h3>
                 </div>
-                <div className="abt-card-text">
+                <div className="about-card-text">
                   <p>
                     After collecting your waste we segregate it efficiently into dry and wet waste.
                     We then communicate and co-ordinate with all recyclable industries.
