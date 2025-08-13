@@ -23,113 +23,114 @@ const ContactForm = () => {
   };
 
   return (
-    <section id="four">
-      <h1 id="even-h1">Contact-me</h1>
+    <section id="contact">
+      <h1 className="contact-main-heading">Contact-me</h1>
       
       {/* Form status message */}
       {formStatus && (
-        <div className={`form-status ${formStatus}`}>
+        <div className={`contact-form-status ${formStatus}`}>
           {formStatus === 'success' ? 'Thank You for contacting us' : 'Unable to contact'}
         </div>
       )}
       
-      <div className="contact-us">
+      <div className="contact-us-desktop">
         <form 
-          className="gform" 
+          className="contact-gform" 
           method="POST" 
           data-email="ucoeproject@gmail.com" 
           name="google-sheet"
           onSubmit={handleSubmit}
         >
-          <div className="cnt-bx">
+          <div className="contact-input-box">
             <input 
               type="text" 
-              id="name" 
-              className="name" 
+              id="contact-name" 
+              className="contact-name-input" 
               name="name" 
               required="required"
             />
-            <span>Full Name(XYZ)</span>
+            <span className="contact-label">Full Name(XYZ)</span>
           </div>
-          <div className="cnt-bx">
+          <div className="contact-input-box">
             <input 
               type="text" 
-              id="email" 
-              className="email" 
+              id="contact-email" 
+              className="contact-email-input" 
               name="email" 
               required="required"
             />
-            <span>Email Address(xyz@email.com)</span>
+            <span className="contact-label">Email Address(xyz@email.com)</span>
           </div>
-          <div className="cnt-bx comment-box"> 
+          <div className="contact-input-box contact-comment-box"> 
             <textarea 
               name="message" 
-              className="message-area"  // Changed from "message" to "message-area"
-              id="message" 
+              className="contact-message-area"
+              id="contact-message" 
               cols="80" 
               rows="10" 
               required="required"
             ></textarea>
-            <span>Comments/Suggestions/Complaints</span>
+            <span className="contact-label">Comments/Suggestions/Complaints</span>
           </div>
           <button 
-            className="cnt-btn" 
+            className="contact-submit-btn" 
             type="submit" 
-            id="contact"
+            id="contact-submit"
           >
             Submit
           </button>
         </form>
       </div>
 
-      {/* Contact Image - Ensuring Visibility */}
-      <div className="cnt-img">
+      {/* Contact Image - Desktop Only */}
+      <div className="contact-image-desktop">
         <img src="/images/contact-image.svg" alt="Connect Image" />
       </div>
 
-      {/* Mobile view contact form */}
-      <div className="contact-us-mob">
-        <div className="contact-us-form">
+      {/* Mobile and Tablet view contact form */}
+      <div className="contact-us-mobile">
+        <div className="contact-form-mobile">
           <form 
-            className="gform" 
+            className="contact-gform-mobile" 
             method="POST" 
             data-email="ucoeproject@gmail.com" 
             name="google-sheet"
             onSubmit={handleSubmit}
           >
-            <div className="cnt-img-mob">
+            <div className="contact-image-mobile">
               <img src="/images/contact-image.svg" alt="Connect Image" />
             </div>
-            <label htmlFor="fname">Full Name</label>
+            <label htmlFor="contact-fname" className="contact-mobile-label">Full Name</label>
             <input 
               type="text" 
-              id="fname" 
+              id="contact-fname" 
+              className="contact-mobile-input"
               name="fullname" 
               placeholder="Name"
             />
 
-            <label htmlFor="email">Email Id</label>
+            <label htmlFor="contact-mobile-email" className="contact-mobile-label">Email Id</label>
             <input 
               type="text" 
-              id="email" 
-              className="email" 
+              id="contact-mobile-email" 
+              className="contact-mobile-input" 
               name="email" 
               placeholder="xyz@email.com" 
               required="required"
             />
 
-            <label htmlFor="subject">Comments/Suggestions/Complaints</label>
-              <textarea 
-                id="subject" 
-                name="subject" 
-                className="message-area-mobile"  // Add this class
-                placeholder="Comments....." 
-                style={{ height: "200px" }}
+            <label htmlFor="contact-mobile-subject" className="contact-mobile-label">Comments/Suggestions/Complaints</label>
+            <textarea 
+              id="contact-mobile-subject" 
+              name="subject" 
+              className="contact-mobile-textarea"
+              placeholder="Comments....." 
+              style={{ height: "200px" }}
             ></textarea>
             <button 
-              className="cnt-mob-btn" 
+              className="contact-mobile-submit-btn" 
               type="submit" 
-              id="contact"
+              id="contact-mobile-submit"
             >
               Submit
             </button>
