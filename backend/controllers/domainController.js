@@ -211,7 +211,11 @@ exports.getDomainById = async (req, res) => {
       // Add ideas array for frontend
       ideas: ideas,
       totalTopics: domain.totalTopics,
-      ideaCount: ideas.length
+      ideaCount: ideas.length,
+      // Add admin permissions for frontend
+      canEdit: req.userId && (req.userId === domain.createdBy._id.toString() || req.user?.isAdmin),
+      canDelete: req.userId && (req.userId === domain.createdBy._id.toString() || req.user?.isAdmin),
+      isAdmin: req.user?.isAdmin || false
     };
 
     console.log('Sending response with structure:', {
@@ -220,7 +224,10 @@ exports.getDomainById = async (req, res) => {
       hasImageurl: !!responseData.imageurl,
       hasImageUrl: !!responseData.imageUrl,
       hasTags: !!responseData.tags,
-      hasTopics: !!responseData.topics
+      hasTopics: !!responseData.topics,
+      canEdit: responseData.canEdit,
+      canDelete: responseData.canDelete,
+      isAdmin: responseData.isAdmin
     });
 
     // Return domain data directly for frontend compatibility
@@ -405,7 +412,7 @@ exports.updateDomain = async (req, res) => {
       });
     }
 
-    // Check permissions
+    // Check permissions - allow admin or owner
     if (domain.createdBy.toString() !== req.userId && !req.user?.isAdmin) {
       return res.status(403).json({
         success: false,
@@ -481,7 +488,7 @@ exports.updateDomain = async (req, res) => {
   }
 };
 
-// Delete domain with enhanced logic
+// Delete domain with enhanced logic (supports both admin and regular users)
 exports.deleteDomain = async (req, res) => {
   try {
     const { domainId } = req.params;
@@ -495,7 +502,7 @@ exports.deleteDomain = async (req, res) => {
       });
     }
 
-    // Check permissions
+    // Check permissions - allow admin or owner
     if (domain.createdBy.toString() !== req.userId && !req.user?.isAdmin) {
       return res.status(403).json({
         success: false,
@@ -509,12 +516,14 @@ exports.deleteDomain = async (req, res) => {
       isActive: true 
     });
     
+    // Admin can force delete, regular users get soft delete with ideas
     if (activeIdeasCount > 0) {
       // Soft delete - just mark as inactive
       domain.isActive = false;
       await domain.save();
       
-      console.log(`Domain ${domainId} soft deleted (has ${activeIdeasCount} active ideas)`);
+      const userType = req.user?.isAdmin ? 'admin' : 'user';
+      console.log(`Domain ${domainId} soft deleted by ${userType} ${req.userId} (has ${activeIdeasCount} active ideas)`);
       
       return res.json({
         success: true,
@@ -525,7 +534,8 @@ exports.deleteDomain = async (req, res) => {
     // Hard delete if no active ideas
     await Domain.findByIdAndDelete(domainId);
     
-    console.log(`Domain ${domainId} hard deleted (no active ideas)`);
+    const userType = req.user?.isAdmin ? 'admin' : 'user';
+    console.log(`Domain ${domainId} hard deleted by ${userType} ${req.userId} (no active ideas)`);
 
     res.json({
       success: true,

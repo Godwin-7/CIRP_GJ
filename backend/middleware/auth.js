@@ -51,8 +51,9 @@ exports.authenticate = async (req, res, next) => {
     // Add user info to request
     req.userId = decoded.userId;
     req.user = user;
+    req.isAdmin = user.isAdmin; // Add admin flag for easy access
     
-    console.log('Authentication successful for user:', user.username); // Debug log
+    console.log('Authentication successful for user:', user.username, 'Admin:', user.isAdmin); // Debug log
     next();
 
   } catch (error) {
@@ -103,6 +104,7 @@ exports.optionalAuth = async (req, res, next) => {
     if (user && user.isActive) {
       req.userId = decoded.userId;
       req.user = user;
+      req.isAdmin = user.isAdmin; // Add admin flag
     }
     
     next();
@@ -117,7 +119,10 @@ exports.optionalAuth = async (req, res, next) => {
 exports.requireAdmin = async (req, res, next) => {
   try {
     // First authenticate the user
-    await exports.authenticate(req, res, () => {});
+    if (!req.userId) {
+      // Apply authentication first
+      return exports.authenticate(req, res, next);
+    }
     
     if (!req.user || !req.user.isAdmin) {
       return res.status(403).json({
@@ -134,6 +139,101 @@ exports.requireAdmin = async (req, res, next) => {
       message: 'Server error during admin authentication.'
     });
   }
+};
+
+// Check if user is admin or resource owner
+exports.requireAdminOrOwner = (resourceOwnerField = 'createdBy') => {
+  return async (req, res, next) => {
+    try {
+      if (!req.userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+      }
+
+      const user = await User.findById(req.userId).select('isAdmin isActive');
+      
+      if (!user || !user.isActive) {
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid user account'
+        });
+      }
+
+      // If user is admin, allow access
+      if (user.isAdmin) {
+        req.isAdmin = true;
+        req.user = user;
+        return next();
+      }
+
+      // Store the field name for controller to check ownership
+      req.resourceOwnerField = resourceOwnerField;
+      req.user = user;
+      next();
+
+    } catch (error) {
+      console.error('Admin or owner middleware error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error during authorization'
+      });
+    }
+  };
+};
+
+// Middleware to check if user can edit resource (admin or owner)
+exports.canEditResource = (model, resourceIdParam = 'id', ownerField = 'createdBy') => {
+  return async (req, res, next) => {
+    try {
+      if (!req.userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+      }
+
+      // If user is admin, allow
+      if (req.user?.isAdmin) {
+        req.canEdit = true;
+        req.isResourceOwner = false;
+        return next();
+      }
+
+      // Check if user owns the resource
+      const resourceId = req.params[resourceIdParam];
+      const resource = await model.findById(resourceId);
+      
+      if (!resource) {
+        return res.status(404).json({
+          success: false,
+          message: 'Resource not found'
+        });
+      }
+
+      const isOwner = resource[ownerField].toString() === req.userId;
+      req.canEdit = isOwner;
+      req.isResourceOwner = isOwner;
+      req.resource = resource;
+
+      if (!isOwner && !req.user?.isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: 'Not authorized to modify this resource'
+        });
+      }
+
+      next();
+
+    } catch (error) {
+      console.error('Can edit resource middleware error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error during authorization check'
+      });
+    }
+  };
 };
 
 // Error handling middleware
@@ -171,6 +271,14 @@ exports.errorHandler = (err, req, res, next) => {
     return res.status(401).json({
       success: false,
       message: 'Token expired'
+    });
+  }
+
+  // MongoDB cast error (invalid ObjectId)
+  if (err.name === 'CastError') {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid resource ID'
     });
   }
 

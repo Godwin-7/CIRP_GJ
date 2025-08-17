@@ -20,44 +20,46 @@ import Chat from "./components/Pages/ChatPage/Chat";
 import Chatbot from "./components/Pages/HomePage/Chatbot/Chatbot";
 import ChatbotPage from "./components/Pages/HomePage/Chatbot/ChatbotPage";
 import AuthorApp from "./components/Author";
+import AdminDashboard from "./components/Admin/AdminDashboard"; // NEW: Admin Dashboard
 
 function App() {
-  return (
-    <Router>
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <>
-              <Navbar />
-              <Home />
-              <AboutUs />
-              <Ideas />
-              
-                <Contributors />
-              <ContactForm />
-              <DevelopersSection />
-              <Chatbot />
-              <Footer />
-            </>
-          }
-        />
-        <Route path="/domains" element={<DomainPage />} />
-        <Route path="/domains/:domainId" element={<TitlePage />} />
-        <Route
-          path="/domains/:domainId/ideas/:ideaId"
-          element={<ProjectPage />}
-        />
-        <Route path="/domainform" element={<DomainAdder />} />
-        <Route path="/addidea" element={<UserForm />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/chat" element={<Chat />} />
-        <Route path="/chatbot" element={<ChatbotPage />} />
-        <Route path="/addauthor" element={<AuthorApp />} />
-      </Routes>
-    </Router>
-  );
+  return (
+    <Router>
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <>
+              <Navbar />
+              <Home />
+              <AboutUs />
+              <Ideas />
+              <Contributors />
+              <ContactForm />
+              <DevelopersSection />
+              <Chatbot />
+              <Footer />
+            </>
+          }
+        />
+        <Route path="/domains" element={<DomainPage />} />
+        <Route path="/domains/:domainId" element={<TitlePage />} />
+        <Route
+          path="/domains/:domainId/ideas/:ideaId"
+          element={<ProjectPage />}
+        />
+        <Route path="/domainform" element={<DomainAdder />} />
+        <Route path="/addidea" element={<UserForm />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/chat" element={<Chat />} />
+        <Route path="/chatbot" element={<ChatbotPage />} />
+        <Route path="/addauthor" element={<AuthorApp />} />
+        {/* NEW: Admin Dashboard Route */}
+        <Route path="/admin" element={<AdminDashboard />} />
+      </Routes>
+    </Router>
+  );
 }
 
 export default App;

@@ -4,7 +4,7 @@ const Domain = require('../models/Domain');
 const Author = require('../models/Author');
 const Comment = require('../models/Comment');
 
-// Get all ideas
+// Get all ideas with enhanced admin permissions
 exports.getAllIdeas = async (req, res) => {
   try {
     const { 
@@ -52,13 +52,24 @@ exports.getAllIdeas = async (req, res) => {
 
     const ideas = await query;
     
+    // Add admin permissions to each idea
+    const ideasWithPermissions = ideas.map(idea => {
+      const ideaObj = idea.toObject();
+      return {
+        ...ideaObj,
+        canEdit: req.userId && (req.userId === idea.createdBy._id.toString() || req.user?.isAdmin),
+        canDelete: req.userId && (req.userId === idea.createdBy._id.toString() || req.user?.isAdmin),
+        isAdmin: req.user?.isAdmin || false
+      };
+    });
+    
     // Get total count for pagination
     const total = await Idea.countDocuments(filter);
 
     res.json({
       success: true,
       data: {
-        ideas,
+        ideas: ideasWithPermissions,
         pagination: {
           current: parseInt(page),
           total: Math.ceil(total / parseInt(limit)),
@@ -78,7 +89,7 @@ exports.getAllIdeas = async (req, res) => {
   }
 };
 
-// Get idea by ID
+// Get idea by ID with enhanced permissions
 exports.getIdeaById = async (req, res) => {
   try {
     const { ideaId } = req.params;
@@ -117,10 +128,18 @@ exports.getIdeaById = async (req, res) => {
       limit: 20
     });
 
+    const ideaObj = idea.toObject();
+
     res.json({
       success: true,
       data: {
-        idea,
+        idea: {
+          ...ideaObj,
+          // Add admin permissions
+          canEdit: req.userId && (req.userId === idea.createdBy._id.toString() || req.user?.isAdmin),
+          canDelete: req.userId && (req.userId === idea.createdBy._id.toString() || req.user?.isAdmin),
+          isAdmin: req.user?.isAdmin || false
+        },
         comments,
         userInteraction: req.userId ? {
           isLiked: idea.isLikedBy(req.userId),
@@ -288,7 +307,7 @@ exports.createIdea = async (req, res) => {
   }
 };
 
-// Update idea
+// Update idea with admin permissions
 exports.updateIdea = async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -312,7 +331,7 @@ exports.updateIdea = async (req, res) => {
       });
     }
 
-    // Check permissions
+    // Check permissions - allow admin or owner
     if (idea.createdBy.toString() !== req.userId && !req.user?.isAdmin) {
       return res.status(403).json({
         success: false,
@@ -398,7 +417,7 @@ exports.updateIdea = async (req, res) => {
   }
 };
 
-// Delete idea
+// Enhanced delete idea with admin permissions
 exports.deleteIdea = async (req, res) => {
   try {
     const { ideaId } = req.params;
@@ -412,7 +431,7 @@ exports.deleteIdea = async (req, res) => {
       });
     }
 
-    // Check permissions
+    // Check permissions - allow admin or owner
     if (idea.createdBy.toString() !== req.userId && !req.user?.isAdmin) {
       return res.status(403).json({
         success: false,
@@ -420,9 +439,16 @@ exports.deleteIdea = async (req, res) => {
       });
     }
 
-    // Soft delete - mark as inactive
-    idea.isActive = false;
-    await idea.save();
+    // For regular users, soft delete. For admins, this is handled by admin routes
+    if (!req.user?.isAdmin) {
+      // Soft delete - mark as inactive
+      idea.isActive = false;
+      await idea.save();
+    } else {
+      // Admin can hard delete - this will be handled by admin routes
+      idea.isActive = false;
+      await idea.save();
+    }
 
     // Update related stats
     const [domain, author] = await Promise.all([
@@ -583,11 +609,11 @@ exports.manageCollaborationInterest = async (req, res) => {
       });
     }
 
-    // Check if user is the idea creator
-    if (idea.createdBy.toString() !== req.userId) {
+    // Check if user is the idea creator or admin
+    if (idea.createdBy.toString() !== req.userId && !req.user?.isAdmin) {
       return res.status(403).json({
         success: false,
-        message: 'Only the idea creator can manage collaboration interests'
+        message: 'Only the idea creator or admin can manage collaboration interests'
       });
     }
 
@@ -629,10 +655,18 @@ exports.getTrendingIdeas = async (req, res) => {
 
     const trendingIdeas = await Idea.getTrending(parseInt(days), parseInt(limit));
 
+    // Add admin permissions to trending ideas
+    const ideasWithPermissions = trendingIdeas.map(idea => ({
+      ...idea,
+      canEdit: req.userId && (req.userId === idea.createdBy?.toString() || req.user?.isAdmin),
+      canDelete: req.userId && (req.userId === idea.createdBy?.toString() || req.user?.isAdmin),
+      isAdmin: req.user?.isAdmin || false
+    }));
+
     res.json({
       success: true,
       data: {
-        ideas: trendingIdeas,
+        ideas: ideasWithPermissions,
         period: `${days} days`
       }
     });
@@ -647,7 +681,7 @@ exports.getTrendingIdeas = async (req, res) => {
   }
 };
 
-// Search ideas
+// Search ideas with admin permissions
 exports.searchIdeas = async (req, res) => {
   try {
     const { q: query, domain, difficulty, category, status, page = 1, limit = 20 } = req.query;
@@ -670,10 +704,21 @@ exports.searchIdeas = async (req, res) => {
       skip: (parseInt(page) - 1) * parseInt(limit)
     });
 
+    // Add admin permissions
+    const ideasWithPermissions = ideas.map(idea => {
+      const ideaObj = idea.toObject();
+      return {
+        ...ideaObj,
+        canEdit: req.userId && (req.userId === idea.createdBy._id.toString() || req.user?.isAdmin),
+        canDelete: req.userId && (req.userId === idea.createdBy._id.toString() || req.user?.isAdmin),
+        isAdmin: req.user?.isAdmin || false
+      };
+    });
+
     res.json({
       success: true,
       data: {
-        ideas,
+        ideas: ideasWithPermissions,
         query,
         filters: { domain, difficulty, category, status },
         pagination: {
@@ -693,7 +738,7 @@ exports.searchIdeas = async (req, res) => {
   }
 };
 
-// Get ideas by domain
+// Get ideas by domain with admin permissions
 exports.getIdeasByDomain = async (req, res) => {
   try {
     const { domainId } = req.params;
@@ -730,6 +775,17 @@ exports.getIdeasByDomain = async (req, res) => {
       .limit(parseInt(limit))
       .skip((parseInt(page) - 1) * parseInt(limit));
 
+    // Add admin permissions
+    const ideasWithPermissions = ideas.map(idea => {
+      const ideaObj = idea.toObject();
+      return {
+        ...ideaObj,
+        canEdit: req.userId && (req.userId === idea.createdBy._id.toString() || req.user?.isAdmin),
+        canDelete: req.userId && (req.userId === idea.createdBy._id.toString() || req.user?.isAdmin),
+        isAdmin: req.user?.isAdmin || false
+      };
+    });
+
     const total = await Idea.countDocuments(filter);
 
     res.json({
@@ -741,7 +797,7 @@ exports.getIdeasByDomain = async (req, res) => {
           description: domain.description,
           imageUrl: domain.imageUrl
         },
-        ideas,
+        ideas: ideasWithPermissions,
         pagination: {
           current: parseInt(page),
           total: Math.ceil(total / parseInt(limit)),

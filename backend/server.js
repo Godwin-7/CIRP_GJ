@@ -18,6 +18,7 @@ const ideaRoutes = require("./routes/ideas");
 const authorRoutes = require("./routes/authors");
 const commentRoutes = require("./routes/comments");
 const chatRoutes = require("./routes/chat");
+const adminRoutes = require("./routes/admin"); // NEW: Admin routes
 
 // Import middleware
 const { errorHandler } = require("./middleware/auth");
@@ -357,6 +358,7 @@ app.use("/api/ideas", ideaRoutes);
 app.use("/api/authors", authorRoutes);
 app.use("/api/comments", commentRoutes);
 app.use("/api/chat", chatRoutes);
+app.use("/api/admin", adminRoutes); // NEW: Admin routes
 
 // ===== COMMENT ROUTES INTEGRATION =====
 // Legacy route compatibility for existing frontend code
@@ -438,8 +440,43 @@ app.get("/api/health", (req, res) => {
   res.status(200).json({ 
     status: "OK", 
     message: "Server is running",
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    version: "1.1.0", // Version with admin features
+    features: {
+      adminRoutes: true,
+      userManagement: true,
+      contentModeration: true
+    }
   });
+});
+
+// NEW: Admin status check endpoint
+app.get("/api/admin/status", async (req, res) => {
+  try {
+    const User = require("./models/User");
+    const adminCount = await User.countDocuments({ isAdmin: true });
+    
+    res.json({
+      success: true,
+      data: {
+        adminSystemEnabled: true,
+        totalAdmins: adminCount,
+        features: [
+          'Domain Management',
+          'Idea Management', 
+          'User Management',
+          'Content Moderation',
+          'Analytics Dashboard'
+        ]
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
 });
 
 // ✅ FIXED: Add a test endpoint to verify uploads work
@@ -489,4 +526,7 @@ server.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📱 Socket.IO server ready for connections`);
   console.log(`📁 Static files served from: ${path.join(__dirname, "uploads")}`);
+  console.log(`🔐 Admin system enabled - Use /api/admin routes for admin functions`);
+  console.log(`👑 Create admin user by running: node scripts/createAdmin.js`);
 });
+          
