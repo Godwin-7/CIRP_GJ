@@ -29,7 +29,7 @@ const adminData = {
 const createAdmin = async () => {
   try {
     // Connect to MongoDB
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://csundar993:S1RjXYDtC73UGJCE@cluster2.3g8fa.mongodb.net/cirp', {
+    await mongoose.connect(process.env.MONGODB_URI , {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
