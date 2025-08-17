@@ -1,3 +1,4 @@
+// controllers/authController.js - MINIMAL FIX (PRESERVES ALL FUNCTIONALITY)
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { validationResult } = require('express-validator');
@@ -11,7 +12,7 @@ const generateToken = (userId) => {
   return jwt.sign({ userId }, JWT_SECRET, { expiresIn: JWT_EXPIRE });
 };
 
-// Register User
+// Register User - UNCHANGED
 exports.register = async (req, res) => {
   try {
     // Check for validation errors
@@ -80,15 +81,19 @@ exports.register = async (req, res) => {
   }
 };
 
-// Login User - FIXED VERSION
+// Login User - MINIMAL FIX with enhanced debugging
 exports.login = async (req, res) => {
   try {
-    console.log('Login attempt with:', { email: req.body.email, hasPassword: !!req.body.password });
+    console.log('🔐 Login attempt:', { 
+      email: req.body.email, 
+      hasPassword: !!req.body.password,
+      timestamp: new Date().toISOString()
+    });
 
     // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      console.log('Validation errors:', errors.array());
+      console.log('❌ Validation errors:', errors.array());
       return res.status(400).json({
         success: false,
         message: 'Validation failed',
@@ -99,19 +104,28 @@ exports.login = async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      console.log('Missing email or password');
+      console.log('❌ Missing email or password');
       return res.status(400).json({
         success: false,
         message: 'Email and password are required'
       });
     }
 
-    // Find user by email or username
-    const user = await User.findByEmailOrUsername(email);
-    console.log('User found:', user ? `Yes (${user.username})` : 'No');
+    // Find user by email or username with improved query
+    const user = await User.findByEmailOrUsername(email.trim());
+    
+    console.log('🔍 User lookup result:', user ? {
+      found: true,
+      username: user.username,
+      email: user.email,
+      isAdmin: user.isAdmin,
+      isActive: user.isActive,
+      hasPassword: !!user.password,
+      passwordHashLength: user.password?.length
+    } : { found: false });
     
     if (!user) {
-      console.log('No user found with email/username:', email);
+      console.log('❌ No user found with email/username:', email);
       return res.status(400).json({
         success: false,
         message: 'Invalid credentials'
@@ -120,20 +134,39 @@ exports.login = async (req, res) => {
 
     // Check if user is active
     if (!user.isActive) {
-      console.log('User account is deactivated:', user.username);
+      console.log('❌ User account is deactivated:', user.username);
       return res.status(400).json({
         success: false,
         message: 'Account is deactivated. Please contact support.'
       });
     }
 
-    // Check password
-    console.log('Comparing password...');
-    const isPasswordValid = await user.comparePassword(password);
-    console.log('Password valid:', isPasswordValid);
+    // Password validation with enhanced debugging
+    console.log('🔒 Starting password validation...');
+    let isPasswordValid = false;
+    
+    try {
+      // Use the user's comparePassword method (this should work)
+      isPasswordValid = await user.comparePassword(password);
+      console.log('✅ Password validation result:', isPasswordValid);
+      
+      // If user method fails, try direct bcrypt compare as fallback
+      if (!isPasswordValid) {
+        console.log('⚠️ User.comparePassword failed, trying direct bcrypt...');
+        isPasswordValid = await bcrypt.compare(password, user.password);
+        console.log('🔧 Direct bcrypt result:', isPasswordValid);
+      }
+      
+    } catch (passwordError) {
+      console.error('❌ Password comparison error:', passwordError);
+      return res.status(500).json({
+        success: false,
+        message: 'Error during password verification'
+      });
+    }
     
     if (!isPasswordValid) {
-      console.log('Invalid password for user:', user.username);
+      console.log('❌ Invalid password for user:', user.username);
       return res.status(400).json({
         success: false,
         message: 'Invalid credentials'
@@ -142,13 +175,13 @@ exports.login = async (req, res) => {
 
     // Generate token
     const token = generateToken(user._id);
-    console.log('Token generated successfully');
+    console.log('✅ Token generated for user:', user.username);
 
     // Update last login
     user.lastLogin = new Date();
     await user.save();
 
-    // FIXED: Match the expected frontend response structure
+    // Response structure that matches frontend expectations
     const responseData = {
       token,
       user: {
@@ -162,19 +195,23 @@ exports.login = async (req, res) => {
       }
     };
 
-    console.log('Login successful for user:', user.username);
+    console.log('🎉 Login successful:', { 
+      username: user.username, 
+      isAdmin: user.isAdmin,
+      timestamp: new Date().toISOString()
+    });
 
     // Return response in the format expected by frontend
     res.json({
       success: true,
       message: 'Login successful',
-      token: responseData.token,  // Add token at root level for frontend compatibility
+      token: responseData.token,  // Root level for frontend compatibility
       data: responseData,
-      user: responseData.user     // Add user at root level for frontend compatibility
+      user: responseData.user     // Root level for frontend compatibility
     });
 
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('❌ Login error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error during login',
@@ -183,7 +220,9 @@ exports.login = async (req, res) => {
   }
 };
 
-// Get Current User Profile
+// ALL OTHER FUNCTIONS REMAIN EXACTLY THE SAME TO PRESERVE FUNCTIONALITY
+
+// Get Current User Profile - UNCHANGED
 exports.getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.userId)
@@ -213,7 +252,7 @@ exports.getProfile = async (req, res) => {
   }
 };
 
-// Update User Profile
+// Update User Profile - UNCHANGED
 exports.updateProfile = async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -269,7 +308,7 @@ exports.updateProfile = async (req, res) => {
   }
 };
 
-// Change Password
+// Change Password - UNCHANGED
 exports.changePassword = async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -319,16 +358,13 @@ exports.changePassword = async (req, res) => {
   }
 };
 
-// Logout (if using token blacklisting)
+// Logout - UNCHANGED
 exports.logout = async (req, res) => {
   try {
-    // In a real application, you might want to blacklist the token
-    // For now, we'll just send a success response
     res.json({
       success: true,
       message: 'Logged out successfully'
     });
-
   } catch (error) {
     console.error('Logout error:', error);
     res.status(500).json({
@@ -339,7 +375,7 @@ exports.logout = async (req, res) => {
   }
 };
 
-// Verify Token
+// Verify Token - UNCHANGED
 exports.verifyToken = async (req, res) => {
   try {
     const user = await User.findById(req.userId);
@@ -375,7 +411,7 @@ exports.verifyToken = async (req, res) => {
   }
 };
 
-// Follow/Unfollow User
+// Follow/Unfollow User - UNCHANGED
 exports.toggleFollow = async (req, res) => {
   try {
     const { targetUserId } = req.params;
@@ -434,7 +470,7 @@ exports.toggleFollow = async (req, res) => {
   }
 };
 
-// Get User by ID
+// Get User by ID - UNCHANGED
 exports.getUserById = async (req, res) => {
   try {
     const { userId } = req.params;

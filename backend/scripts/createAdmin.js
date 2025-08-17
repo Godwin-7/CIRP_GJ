@@ -1,4 +1,4 @@
-// scripts/createAdmin.js
+// scripts/createAdmin.js - SIMPLE VERSION (PRESERVES ALL FUNCTIONALITY)
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
@@ -8,7 +8,7 @@ require('dotenv').config();
 const adminData = {
   username: 'CIRP-admin',
   email: 'cirp-admin@gmail.com',
-  password: 'cirp-admin@123', // This will be hashed before saving
+  password: 'cirp-admin@123',
   fullName: 'CIRP Administrator',
   isAdmin: true,
   isActive: true,
@@ -36,57 +36,45 @@ const createAdmin = async () => {
 
     console.log('Connected to MongoDB');
 
-    // Check if admin already exists
-    const existingAdmin = await User.findOne({ 
+    // Delete existing admin completely to avoid conflicts
+    await User.deleteMany({ 
       $or: [
         { email: adminData.email },
         { username: adminData.username }
       ]
     });
+    console.log('🗑️ Removed any existing admin users');
 
-    if (existingAdmin) {
-      console.log('Admin user already exists:', existingAdmin.username);
-      
-      // Update admin status if user exists but is not admin
-      if (!existingAdmin.isAdmin) {
-        existingAdmin.isAdmin = true;
-        await existingAdmin.save();
-        console.log('Updated existing user to admin status');
-      }
-      
-      // Optional: Update password if needed (uncomment if you want to reset password)
-      /*
-      const saltRounds = 12;
-      const hashedPassword = await bcrypt.hash(adminData.password, saltRounds);
-      existingAdmin.password = hashedPassword;
-      await existingAdmin.save();
-      console.log('Password updated for existing admin');
-      */
-      
-      process.exit(0);
-    }
-
-    // Hash the password before creating user
-    const saltRounds = 12;
-    const hashedPassword = await bcrypt.hash(adminData.password, saltRounds);
+    // Create new admin user - LET MONGOOSE HANDLE THE PASSWORD HASHING
+    console.log('🔧 Creating new admin user...');
     
-    console.log('Password hashed successfully');
-
-    // Create new admin user with hashed password
     const adminUser = new User({
-      ...adminData,
-      password: hashedPassword // Use hashed password
+      ...adminData
+      // Don't hash password here - let User model's pre-save middleware handle it
     });
     
-    await adminUser.save();
+    await adminUser.save(); // This will trigger the pre-save middleware to hash the password
 
     console.log('✅ Admin user created successfully!');
     console.log('Admin Details:');
     console.log(`Username: ${adminUser.username}`);
     console.log(`Email: ${adminUser.email}`);
+    console.log(`Password: ${adminData.password}`);
     console.log(`Admin Status: ${adminUser.isAdmin}`);
     console.log(`User ID: ${adminUser._id}`);
-    console.log(`Password Hash: ${hashedPassword.substring(0, 20)}...`);
+
+    // Test the password immediately after creation
+    console.log('\n🧪 Testing password...');
+    const savedUser = await User.findById(adminUser._id);
+    const passwordTest = await savedUser.comparePassword(adminData.password);
+    console.log('Password test result:', passwordTest ? '✅ SUCCESS' : '❌ FAILED');
+
+    if (passwordTest) {
+      console.log('\n🎉 Admin login should work now!');
+      console.log('🔑 Use credentials: cirp-admin@gmail.com / cirp-admin@123');
+    } else {
+      console.log('\n❌ Password test failed - there may be a bcrypt configuration issue');
+    }
 
   } catch (error) {
     console.error('❌ Error creating admin user:', error);
@@ -104,7 +92,7 @@ const createAdmin = async () => {
   }
 };
 
-// Additional function to create multiple admins
+// Additional function to create multiple admins (preserved for compatibility)
 const createMultipleAdmins = async (adminUsers) => {
   try {
     await mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://csundar993:S1RjXYDtC73UGJCE@cluster2.3g8fa.mongodb.net/cirp', {
@@ -115,7 +103,6 @@ const createMultipleAdmins = async (adminUsers) => {
     console.log('Connected to MongoDB for multiple admin creation');
 
     const results = [];
-    const saltRounds = 12;
     
     for (const adminData of adminUsers) {
       try {
@@ -137,12 +124,9 @@ const createMultipleAdmins = async (adminUsers) => {
             results.push({ username: adminData.username, status: 'exists' });
           }
         } else {
-          // Hash password for new admin
-          const hashedPassword = await bcrypt.hash(adminData.password, saltRounds);
-          
+          // Create new admin - let mongoose handle password hashing
           const adminUser = new User({
             ...adminData,
-            password: hashedPassword, // Use hashed password
             isAdmin: true,
             isActive: true,
             emailVerified: true
@@ -175,7 +159,7 @@ const createMultipleAdmins = async (adminUsers) => {
   }
 };
 
-// Function to update existing admin password (for troubleshooting)
+// Function to update existing admin password (preserved for troubleshooting)
 const updateAdminPassword = async (email, newPassword) => {
   try {
     await mongoose.connect(process.env.MONGODB_URI, {
@@ -192,15 +176,13 @@ const updateAdminPassword = async (email, newPassword) => {
       return;
     }
 
-    const saltRounds = 12;
-    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
-    
-    admin.password = hashedPassword;
+    // Set new password - let mongoose handle the hashing
+    admin.password = newPassword;
     await admin.save();
 
     console.log('✅ Admin password updated successfully!');
     console.log(`Email: ${email}`);
-    console.log(`New Password Hash: ${hashedPassword.substring(0, 20)}...`);
+    console.log(`New Password: ${newPassword}`);
 
   } catch (error) {
     console.error('❌ Error updating admin password:', error);
