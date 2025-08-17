@@ -9,6 +9,7 @@ const { createServer } = require("http");
 const { Server } = require("socket.io");
 const path = require("path");
 const fs = require("fs");
+const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
 // Import routes
@@ -124,11 +125,54 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://csundar993:S1RjXYDtC7
 .then(() => console.log("✅ MongoDB connected successfully"))
 .catch((err) => console.error("❌ MongoDB connection error:", err));
 
-// Socket.IO for real-time chat - FIXED VERSION
+// Socket.IO for real-time chat - ENHANCED VERSION with proper user authentication
 const Message = require("./models/Message");
+const User = require("./models/User");
+
+// Socket authentication middleware
+const authenticateSocket = async (socket, next) => {
+  try {
+    const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.replace('Bearer ', '');
+    
+    if (!token) {
+      console.log('⚠️ Socket connection without token, allowing anonymous access');
+      socket.isAuthenticated = false;
+      return next();
+    }
+
+    // Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Get user from database
+    const user = await User.findById(decoded.userId).select('-password');
+    
+    if (!user || !user.isActive) {
+      console.log('❌ Invalid user for socket connection');
+      socket.isAuthenticated = false;
+      return next();
+    }
+
+    // Store user data in socket
+    socket.userId = user._id.toString();
+    socket.userEmail = user.email;
+    socket.username = user.username;
+    socket.isAuthenticated = true;
+    
+    console.log('✅ Socket authenticated for user:', user.username);
+    next();
+    
+  } catch (error) {
+    console.log('⚠️ Socket authentication failed:', error.message, '- allowing anonymous access');
+    socket.isAuthenticated = false;
+    next();
+  }
+};
+
+// Apply socket authentication middleware
+io.use(authenticateSocket);
 
 io.on("connection", (socket) => {
-  console.log("👤 User connected:", socket.id);
+  console.log("👤 User connected:", socket.id, socket.isAuthenticated ? `(${socket.username})` : '(anonymous)');
 
   // Send global chat history when user connects
   socket.on("getMessages", async () => {
@@ -177,10 +221,15 @@ io.on("connection", (socket) => {
     }
   });
 
-  // Handle new global message
+  // Handle new global message - ENHANCED with user validation
   socket.on("sendMessage", async ({ username, email, message, domainId }) => {
     try {
-      console.log("Received global message:", { username, email, message: message?.substring(0, 50) });
+      console.log("Received global message:", { 
+        fromSocket: socket.username || 'anonymous',
+        providedUsername: username, 
+        providedEmail: email, 
+        message: message?.substring(0, 50) 
+      });
       
       if (!message || message.trim() === '') {
         console.log("Empty message, ignoring");
@@ -188,24 +237,45 @@ io.on("connection", (socket) => {
         return;
       }
 
-      if (!username || !email) {
-        console.log("Missing username or email");
-        socket.emit("messageError", { error: "Username and email are required" });
-        return;
+      // Use authenticated user data if available, otherwise fall back to provided data
+      let finalUsername = username;
+      let finalEmail = email;
+      let userId = null;
+
+      if (socket.isAuthenticated) {
+        // Use authenticated user data - this ensures correct user association
+        finalUsername = socket.username;
+        finalEmail = socket.userEmail;
+        userId = socket.userId;
+        
+        console.log("✅ Using authenticated user data:", { 
+          socketUsername: socket.username, 
+          socketEmail: socket.userEmail 
+        });
+      } else {
+        // Validate provided user data for anonymous users
+        if (!username || !email) {
+          console.log("❌ Missing username or email for anonymous user");
+          socket.emit("messageError", { error: "Username and email are required" });
+          return;
+        }
+        
+        console.log("⚠️ Using provided user data for anonymous user");
       }
 
       const newMessage = new Message({ 
-        username: username.trim(), 
-        email: email.trim().toLowerCase(), 
+        username: finalUsername.trim(), 
+        email: finalEmail.trim().toLowerCase(), 
         message: message.trim(),
         content: message.trim(), // Set both for compatibility
         messageType: domainId ? 'domain' : 'global',
         domainId: domainId || null,
+        userId: userId, // Will be null for anonymous users
         timestamp: new Date()
       });
       
       const savedMessage = await newMessage.save();
-      console.log("Global message saved successfully:", savedMessage._id);
+      console.log("Global message saved successfully:", savedMessage._id, "by user:", finalUsername);
       
       // Format message for broadcast
       const broadcastMessage = {
@@ -221,11 +291,11 @@ io.on("connection", (socket) => {
       
       // Broadcast message to all clients for global chat
       if (!domainId) {
-        console.log("Broadcasting global message to all clients");
+        console.log("Broadcasting global message to all clients from:", finalUsername);
         io.emit("receiveMessage", broadcastMessage);
       } else {
         // Broadcast to domain room
-        console.log(`Broadcasting domain message to domain_${domainId}`);
+        console.log(`Broadcasting domain message to domain_${domainId} from:`, finalUsername);
         io.to(`domain_${domainId}`).emit("receiveDomainMessage", broadcastMessage);
       }
     } catch (error) {
@@ -238,22 +308,23 @@ io.on("connection", (socket) => {
   socket.on("joinDomain", (domainId) => {
     if (domainId) {
       socket.join(`domain_${domainId}`);
-      console.log(`User ${socket.id} joined domain ${domainId}`);
+      console.log(`User ${socket.id} (${socket.username || 'anonymous'}) joined domain ${domainId}`);
     }
   });
 
-  // Handle domain-specific message
+  // Handle domain-specific message - ENHANCED with user validation
   socket.on("sendDomainMessage", async ({ username, email, message, domainId }) => {
     try {
-      console.log("Received domain message:", { username, email, message: message?.substring(0, 50), domainId });
+      console.log("Received domain message:", { 
+        fromSocket: socket.username || 'anonymous',
+        providedUsername: username, 
+        providedEmail: email, 
+        message: message?.substring(0, 50), 
+        domainId 
+      });
       
       if (!message || message.trim() === '') {
         socket.emit("messageError", { error: "Message cannot be empty" });
-        return;
-      }
-
-      if (!username || !email) {
-        socket.emit("messageError", { error: "Username and email are required" });
         return;
       }
 
@@ -261,19 +332,46 @@ io.on("connection", (socket) => {
         socket.emit("messageError", { error: "Domain ID is required for domain messages" });
         return;
       }
+
+      // Use authenticated user data if available, otherwise fall back to provided data
+      let finalUsername = username;
+      let finalEmail = email;
+      let userId = null;
+
+      if (socket.isAuthenticated) {
+        // Use authenticated user data - this ensures correct user association
+        finalUsername = socket.username;
+        finalEmail = socket.userEmail;
+        userId = socket.userId;
+        
+        console.log("✅ Using authenticated user data for domain message:", { 
+          socketUsername: socket.username, 
+          socketEmail: socket.userEmail 
+        });
+      } else {
+        // Validate provided user data for anonymous users
+        if (!username || !email) {
+          console.log("❌ Missing username or email for anonymous domain user");
+          socket.emit("messageError", { error: "Username and email are required" });
+          return;
+        }
+        
+        console.log("⚠️ Using provided user data for anonymous domain user");
+      }
       
       const newMessage = new Message({ 
-        username: username.trim(), 
-        email: email.trim().toLowerCase(), 
+        username: finalUsername.trim(), 
+        email: finalEmail.trim().toLowerCase(), 
         message: message.trim(),
         content: message.trim(),
         messageType: 'domain',
         domainId,
+        userId: userId, // Will be null for anonymous users
         timestamp: new Date()
       });
       
       const savedMessage = await newMessage.save();
-      console.log("Domain message saved successfully:", savedMessage._id);
+      console.log("Domain message saved successfully:", savedMessage._id, "by user:", finalUsername);
       
       // Format message for broadcast
       const broadcastMessage = {
@@ -342,7 +440,7 @@ io.on("connection", (socket) => {
 
   // Handle user disconnect
   socket.on("disconnect", () => {
-    console.log("👤 User disconnected:", socket.id);
+    console.log("👤 User disconnected:", socket.id, socket.username ? `(${socket.username})` : '(anonymous)');
   });
 
   // Handle connection errors
@@ -445,7 +543,9 @@ app.get("/api/health", (req, res) => {
     features: {
       adminRoutes: true,
       userManagement: true,
-      contentModeration: true
+      contentModeration: true,
+      socketAuthentication: true, // NEW: Enhanced socket authentication
+      anonymousSupport: true // NEW: Support for anonymous users
     }
   });
 });
@@ -466,7 +566,9 @@ app.get("/api/admin/status", async (req, res) => {
           'Idea Management', 
           'User Management',
           'Content Moderation',
-          'Analytics Dashboard'
+          'Analytics Dashboard',
+          'Enhanced Socket Authentication', // NEW
+          'Anonymous User Support' // NEW
         ]
       }
     });
@@ -528,5 +630,6 @@ server.listen(PORT, () => {
   console.log(`📁 Static files served from: ${path.join(__dirname, "uploads")}`);
   console.log(`🔐 Admin system enabled - Use /api/admin routes for admin functions`);
   console.log(`👑 Create admin user by running: node scripts/createAdmin.js`);
+  console.log(`🔒 Enhanced socket authentication enabled - supports both authenticated and anonymous users`);
+  console.log(`⚡ Real-time chat with user validation and proper authentication flow`);
 });
-          

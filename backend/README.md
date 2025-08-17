@@ -119,12 +119,14 @@ backend/
 │   └── Message.js           # Chat system
 ├── routes/               # API route definitions
 │   ├── auth.js              # Authentication routes
+│   ├── admin.js             # Admin routes
 │   ├── domains.js           # Domain routes
 │   ├── ideas.js             # Idea routes
 │   ├── authors.js           # Author routes
 │   ├── comments.js          # Comment routes
 │   └── chat.js              # Chat routes
 ├── middleware/           # Custom middleware
+│   ├── admin.js             # Admin
 │   ├── auth.js              # Authentication middleware
 │   ├── upload.js            # File upload handling
 │   └── validation.js        # Input validation
@@ -138,6 +140,7 @@ backend/
 │   └── database.js          # Database connection
 ├── scripts/              # Utility scripts
 │   └── seedData.js          # Database seeding
+│   ├── createAdmin.js       # Admin seeding
 ├── server.js             # Main server file
 ├── package.json          # Dependencies
 └── README.md            # This file

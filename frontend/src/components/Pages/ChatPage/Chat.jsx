@@ -16,62 +16,51 @@ const Chat = ({ domainId = null }) => {
   const [userInitialized, setUserInitialized] = useState(false);
   const chatBoxRef = useRef(null);
 
-  // Function to get current user data
+  // Function to get current user data with better error handling and no fallback to hardcoded names
   const getCurrentUser = async () => {
     try {
-      // First try to get from localStorage
+      // Get token from localStorage
       const token = localStorage.getItem("token");
-      const storedUserData = localStorage.getItem("userData");
       
       if (!token) {
+        console.log("No authentication token found");
         throw new Error("No authentication token found");
       }
 
-      let userData = null;
+      console.log("🔍 Fetching current user data from server...");
+      
+      // Always fetch fresh user data from server to ensure we get the correct user
+      const response = await axios.get("http://localhost:5000/api/auth/verify", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
 
-      // Try to parse stored user data
-      if (storedUserData) {
-        try {
-          userData = JSON.parse(storedUserData);
-          console.log("Parsed stored user data:", userData);
-        } catch (e) {
-          console.warn("Error parsing stored user data:", e);
-        }
-      }
+      console.log("🔍 Server response:", response.data);
 
-      // If no valid stored data, fetch from server
-      if (!userData || !userData.username || !userData.email) {
-        console.log("Fetching user data from server...");
+      if (response.data.success && response.data.data && response.data.data.user) {
+        const userData = response.data.data.user;
         
-        const response = await axios.get("http://localhost:5000/api/auth/verify", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
+        console.log("✅ User data from server:", {
+          username: userData.username,
+          email: userData.email,
+          id: userData.id || userData._id,
+          fullName: userData.fullName
         });
 
-        if (response.data.success && response.data.data.user) {
-          userData = response.data.data.user;
-          
-          // Update localStorage with fresh data
-          localStorage.setItem("userData", JSON.stringify(userData));
-          localStorage.setItem("username", userData.username);
-          localStorage.setItem("email", userData.email);
-          
-          console.log("Fetched fresh user data:", userData);
-        } else {
-          throw new Error("Invalid user verification response");
-        }
-      }
-
-      // Set user state
-      if (userData) {
-        setUsername(userData.username || "Anonymous");
-        setEmail(userData.email || "anonymous@example.com");
+        // Update localStorage with fresh data
+        localStorage.setItem("userData", JSON.stringify(userData));
+        localStorage.setItem("username", userData.username);
+        localStorage.setItem("email", userData.email);
+        
+        // Set user state with server data
+        setUsername(userData.username || "");
+        setEmail(userData.email || "");
         setUserId(userData.id || userData._id || "");
         setUserInitialized(true);
         
-        console.log("User initialized:", {
+        console.log("👤 User initialized successfully:", {
           username: userData.username,
           email: userData.email,
           id: userData.id || userData._id
@@ -79,29 +68,29 @@ const Chat = ({ domainId = null }) => {
         
         return userData;
       } else {
-        throw new Error("No user data available");
+        console.error("❌ Invalid response from server:", response.data);
+        throw new Error("Invalid user verification response");
       }
 
     } catch (error) {
-      console.error("Error getting current user:", error);
+      console.error("❌ Error getting current user:", error);
       
-      // Fallback to anonymous user
-      const fallbackUsername = "Anonymous_" + Date.now().toString().slice(-4);
-      const fallbackEmail = `anonymous_${Date.now()}@example.com`;
+      // Clear any stale data
+      localStorage.removeItem("userData");
+      localStorage.removeItem("username");
+      localStorage.removeItem("email");
+      localStorage.removeItem("token");
       
-      setUsername(fallbackUsername);
-      setEmail(fallbackEmail);
-      setUserId("");
-      setUserInitialized(true);
+      // Don't set fallback user data - instead redirect to login
+      setError("Authentication required. Please log in.");
+      setUserInitialized(false);
       
-      // Don't set error for anonymous users, just log it
-      console.warn("Using anonymous user due to authentication error");
+      // Redirect to login page after a short delay
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 2000);
       
-      return {
-        username: fallbackUsername,
-        email: fallbackEmail,
-        id: ""
-      };
+      throw error;
     }
   };
 
@@ -109,27 +98,33 @@ const Chat = ({ domainId = null }) => {
   useEffect(() => {
     const initializeUser = async () => {
       setIsLoading(true);
+      setError(null);
+      
       try {
         await getCurrentUser();
       } catch (error) {
         console.error("Failed to initialize user:", error);
-        setError("Failed to load user information");
+        setError("Failed to authenticate user. Redirecting to login...");
       } finally {
         setIsLoading(false);
       }
     };
 
     initializeUser();
-  }, []);
+  }, []); // Only run once on mount
 
   // Initialize socket connection after user is initialized
   useEffect(() => {
-    if (!userInitialized) {
-      console.log("User not initialized yet, waiting...");
+    if (!userInitialized || !username || !email) {
+      console.log("⏳ User not fully initialized yet, waiting...", { 
+        userInitialized, 
+        hasUsername: !!username, 
+        hasEmail: !!email 
+      });
       return;
     }
 
-    console.log("Initializing socket connection...", { 
+    console.log("🔌 Initializing socket connection...", { 
       username, 
       email, 
       domainId,
@@ -373,12 +368,28 @@ const Chat = ({ domainId = null }) => {
     return `Type your message in ${domainId ? 'domain' : 'global'} chat... (Press Enter to send)`;
   };
 
+  // Show error screen if authentication failed
+  if (error && error.includes("Authentication required")) {
+    return (
+      <div className="global-chat-container">
+        <div className="global-chat-error-screen">
+          <div className="global-chat-error-icon">🔒</div>
+          <h3>Authentication Required</h3>
+          <p>{error}</p>
+          <button onClick={() => window.location.href = "/login"}>
+            Go to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // Show loading screen if user is not initialized
   if (!userInitialized || isLoading) {
     return (
-      <div className="chat-container">
-        <div className="loading-messages">
-          <div className="spinner"></div>
+      <div className="global-chat-container">
+        <div className="global-chat-loading-messages">
+          <div className="global-chat-spinner"></div>
           <p>Loading chat and user information...</p>
         </div>
       </div>
@@ -386,41 +397,41 @@ const Chat = ({ domainId = null }) => {
   }
 
   return (
-    <div className="chat-container">
-      <div className="chat-header">
+    <div className="global-chat-container">
+      <div className="global-chat-header">
         <h2 className="text-black text-3xl">{getChatTitle()}</h2>
-        <div className="connection-status">
-          <span className={`status-indicator ${isConnected ? 'connected' : 'disconnected'}`}>
+        <div className="global-chat-connection-status">
+          <span className={`global-chat-status-indicator ${isConnected ? 'connected' : 'disconnected'}`}>
             {getConnectionStatusColor()}
           </span>
         </div>
         {error && (
-          <div className="error-banner">
+          <div className="global-chat-error-banner">
             ⚠️ {error}
           </div>
         )}
       </div>
       
-      <div className="chat-box" ref={chatBoxRef}>
+      <div className="global-chat-box" ref={chatBoxRef}>
         {isLoading ? (
-          <div className="loading-messages">
-            <div className="spinner"></div>
+          <div className="global-chat-loading-messages">
+            <div className="global-chat-spinner"></div>
             <p>Loading chat history...</p>
           </div>
         ) : chat.length > 0 ? (
           chat.map((msg, index) => (
-            <div key={msg._id || index} className="message">
-              <div className="message-header">
-                <strong className="username">{msg.username}</strong>
-                <small className="timestamp">
+            <div key={msg._id || index} className={`global-chat-message ${msg.username === username ? 'own-message' : ''}`}>
+              <div className="global-chat-message-header">
+                <strong className="global-chat-username">{msg.username}</strong>
+                <small className="global-chat-timestamp">
                   {formatTimestamp(msg.timestamp)}
                 </small>
               </div>
-              <div className="message-content">{msg.message}</div>
+              <div className="global-chat-message-content">{msg.message}</div>
             </div>
           ))
         ) : (
-          <div className="no-messages">
+          <div className="global-chat-no-messages">
             {isConnected ? 
               `No messages yet in this ${domainId ? 'domain' : 'global'} chat. Start the conversation! 💬` : 
               "Connecting to chat..."
@@ -429,8 +440,8 @@ const Chat = ({ domainId = null }) => {
         )}
       </div>
       
-      <div className="chat-input">
-        <div className="input-group">
+      <div className="global-chat-input">
+        <div className="global-chat-input-group">
           <textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
@@ -443,12 +454,12 @@ const Chat = ({ domainId = null }) => {
           <button 
             onClick={sendMessage} 
             disabled={!isConnected || !message.trim() || isLoading || !userInitialized}
-            className={`send-button ${isConnected && message.trim() && !isLoading && userInitialized ? 'active' : 'inactive'}`}
+            className={`global-chat-send-button ${isConnected && message.trim() && !isLoading && userInitialized ? 'active' : 'inactive'}`}
           >
             {isLoading ? "Loading..." : isConnected ? "Send" : "Connecting..."}
           </button>
         </div>
-        <div className="chat-info">
+        <div className="global-chat-info">
           <small>
             Chatting as: <strong>{username}</strong> in <strong>{domainId ? 'Domain' : 'Global'}</strong> chat
             {!isConnected && " (Trying to reconnect...)"}

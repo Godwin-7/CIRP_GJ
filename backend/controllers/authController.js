@@ -1,4 +1,4 @@
-// controllers/authController.js - MINIMAL FIX (PRESERVES ALL FUNCTIONALITY)
+// controllers/authController.js - Enhanced user verification
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { validationResult } = require('express-validator');
@@ -81,7 +81,7 @@ exports.register = async (req, res) => {
   }
 };
 
-// Login User - MINIMAL FIX with enhanced debugging
+// Login User - Enhanced with better user data response
 exports.login = async (req, res) => {
   try {
     console.log('🔐 Login attempt:', { 
@@ -181,17 +181,22 @@ exports.login = async (req, res) => {
     user.lastLogin = new Date();
     await user.save();
 
-    // Response structure that matches frontend expectations
+    // Enhanced response structure that provides complete user data
     const responseData = {
       token,
       user: {
         id: user._id,
+        _id: user._id, // Include both for compatibility
         username: user.username,
         email: user.email,
         fullName: user.fullName,
         profileImage: user.profileImage,
         isAdmin: user.isAdmin,
-        lastLogin: user.lastLogin
+        lastLogin: user.lastLogin,
+        bio: user.bio,
+        phone: user.phone,
+        isActive: user.isActive,
+        emailVerified: user.emailVerified
       }
     };
 
@@ -219,8 +224,6 @@ exports.login = async (req, res) => {
     });
   }
 };
-
-// ALL OTHER FUNCTIONS REMAIN EXACTLY THE SAME TO PRESERVE FUNCTIONALITY
 
 // Get Current User Profile - UNCHANGED
 exports.getProfile = async (req, res) => {
@@ -375,34 +378,55 @@ exports.logout = async (req, res) => {
   }
 };
 
-// Verify Token - UNCHANGED
+// Enhanced Verify Token with complete user data
 exports.verifyToken = async (req, res) => {
   try {
+    console.log('🔍 Token verification for userId:', req.userId);
+    
     const user = await User.findById(req.userId);
     
     if (!user) {
+      console.log('❌ User not found for token verification:', req.userId);
       return res.status(404).json({
         success: false,
         message: 'User not found'
       });
     }
 
+    if (!user.isActive) {
+      console.log('❌ User account is inactive:', user.username);
+      return res.status(401).json({
+        success: false,
+        message: 'User account is deactivated'
+      });
+    }
+
+    console.log('✅ Token verification successful for user:', user.username);
+
+    // Return complete user data for frontend
     res.json({
       success: true,
       data: {
         user: {
           id: user._id,
+          _id: user._id, // Include both for compatibility
           username: user.username,
           email: user.email,
           fullName: user.fullName,
           profileImage: user.profileImage,
-          isAdmin: user.isAdmin
+          isAdmin: user.isAdmin,
+          bio: user.bio,
+          phone: user.phone,
+          isActive: user.isActive,
+          emailVerified: user.emailVerified,
+          lastLogin: user.lastLogin,
+          createdAt: user.createdAt
         }
       }
     });
 
   } catch (error) {
-    console.error('Verify token error:', error);
+    console.error('❌ Verify token error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error',
