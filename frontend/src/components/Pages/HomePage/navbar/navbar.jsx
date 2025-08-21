@@ -6,243 +6,257 @@ import "@fontsource/poppins/400.css"; // Regular
 import "@fontsource/poppins/900.css"; // Black
 
 const Navbar = () => {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
+  const [navbarMenuOpen, setNavbarMenuOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // Removed localStorage usage
+  const [navbarActiveSection, setNavbarActiveSection] = useState('home');
+  const [navbarTheme, setNavbarTheme] = useState('light');
+  const [navbarVisible, setNavbarVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+  const [isScrolling, setIsScrolling] = useState(false);
+  const [isMouseMoving, setIsMouseMoving] = useState(false);
+  
+  const scrollTimeoutRef = useRef(null);
+  const mouseTimeoutRef = useRef(null);
+  const inactivityTimeoutRef = useRef(null);
 
-  // Refs for section elements
-  const oneRef = useRef(null);
-  const aboutUsRef = useRef(null);
-  const twoRef = useRef(null);
-  const textSphereRef = useRef(null);
-  const fourRef = useRef(null);
-  const devRef = useRef(null);
-  const chatbotRef = useRef(null);
+  // Configuration for navbar sections - easily modifiable for future changes
+  const navbarSections = [
+    { id: 'home', label: 'Home', theme: 'light' },
+    { id: 'about', label: 'About', theme: 'dark' },
+    { id: 'ideas', label: 'Ideas', theme: 'dark' },
+    { id: 'contributors', label: 'Contributors', theme: 'light' },
+    { id: 'contact', label: 'Contact', theme: 'dark' },
+    { id: 'developers', label: 'Developers', theme: 'light' },
+    { id: 'chatbot', label: 'Chatbot', theme: 'light' }
+  ];
 
   // Refs for navigation elements
-  const logoRef = useRef(null);
-  const navlinksRef = useRef(null);
-  const homeNavRef = useRef(null);
-  const aboutUsNavRef = useRef(null);
-  const ideasNavRef = useRef(null);
-  const textSphereNavRef = useRef(null);
-  const contactNavRef = useRef(null);
-  const devNavRef = useRef(null);
-  const chatbotNavRef = useRef(null);
+  const navbarLogoRef = useRef(null);
+  const navbarLinksRef = useRef(null);
+  const navbarNavRefs = useRef({});
 
-  const toggleMenu = () => {
-    setMenuOpen(!menuOpen);
+  const toggleNavbarMenu = () => {
+    setNavbarMenuOpen(!navbarMenuOpen);
+  };
+
+  const startInactivityTimer = () => {
+    if (inactivityTimeoutRef.current) {
+      clearTimeout(inactivityTimeoutRef.current);
+    }
+    
+    inactivityTimeoutRef.current = setTimeout(() => {
+      if (!isScrolling && !isMouseMoving) {
+        setNavbarVisible(false);
+      }
+    }, 5000); // Hide after 5 seconds of inactivity
   };
 
   useEffect(() => {
-    // Get references to actual DOM elements
-    oneRef.current = document.getElementById("one");
-    aboutUsRef.current = document.getElementById("aboutUs");
-    twoRef.current = document.getElementById("two");
-    textSphereRef.current = document.getElementById("TextShpere");
-    fourRef.current = document.getElementById("four");
-    devRef.current = document.getElementById("dev");
-    chatbotRef.current = document.getElementById("chatbot");
+    // Initialize refs for each section
+    navbarSections.forEach(section => {
+      navbarNavRefs.current[section.id] = React.createRef();
+    });
 
-    const handleScroll = () => {
-      const windoo = window.pageYOffset;
+    const handleNavbarScroll = () => {
+      const scrollPosition = window.pageYOffset + 100; // Offset for better detection
+      const currentScrollY = window.pageYOffset;
+      
+      let currentSection = 'home';
+      let currentTheme = 'light';
 
-      if (
-        !oneRef.current ||
-        !aboutUsRef.current ||
-        !twoRef.current ||
-        !textSphereRef.current ||
-        !fourRef.current ||
-        !devRef.current ||
-        !chatbotRef.current
-      ) {
-        return;
+      // Find current section based on scroll position
+      for (let i = navbarSections.length - 1; i >= 0; i--) {
+        const section = navbarSections[i];
+        const element = document.getElementById(section.id);
+        
+        if (element && scrollPosition >= element.offsetTop) {
+          currentSection = section.id;
+          currentTheme = section.theme;
+          break;
+        }
       }
 
-      if (
-        windoo >= oneRef.current.offsetTop &&
-        windoo < aboutUsRef.current.offsetTop
-      ) {
-        homeNavRef.current.setAttribute("id", "active");
-        aboutUsNavRef.current.removeAttribute("id");
-        ideasNavRef.current.removeAttribute("id");
-        textSphereNavRef.current.removeAttribute("id");
-        contactNavRef.current.removeAttribute("id");
-        devNavRef.current.removeAttribute("id");
-        chatbotNavRef.current.removeAttribute("id");
-        logoRef.current.removeAttribute("id", "blue");
-      } else if (
-        windoo >= aboutUsRef.current.offsetTop &&
-        windoo < twoRef.current.offsetTop
-      ) {
-        aboutUsNavRef.current.setAttribute("id", "active6");
-        homeNavRef.current.removeAttribute("id");
-        ideasNavRef.current.removeAttribute("id");
-        textSphereNavRef.current.removeAttribute("id");
-        contactNavRef.current.removeAttribute("id");
-        devNavRef.current.removeAttribute("id");
-        chatbotNavRef.current.removeAttribute("id");
-        logoRef.current.setAttribute("id", "blue");
-      } else if (
-        windoo >= twoRef.current.offsetTop &&
-        windoo < textSphereRef.current.offsetTop
-      ) {
-        ideasNavRef.current.setAttribute("id", "active2");
-        homeNavRef.current.removeAttribute("id");
-        aboutUsNavRef.current.removeAttribute("id");
-        textSphereNavRef.current.removeAttribute("id");
-        contactNavRef.current.removeAttribute("id");
-        devNavRef.current.removeAttribute("id");
-        chatbotNavRef.current.removeAttribute("id");
-        logoRef.current.setAttribute("id", "blue");
-      } else if (
-        windoo >= textSphereRef.current.offsetTop &&
-        windoo < fourRef.current.offsetTop
-      ) {
-        textSphereNavRef.current.setAttribute("id", "active3");
-        homeNavRef.current.removeAttribute("id");
-        aboutUsNavRef.current.removeAttribute("id");
-        ideasNavRef.current.removeAttribute("id");
-        contactNavRef.current.removeAttribute("id");
-        devNavRef.current.removeAttribute("id");
-        chatbotNavRef.current.removeAttribute("id");
-        logoRef.current.removeAttribute("id", "blue");
-      } else if (
-        windoo >= fourRef.current.offsetTop &&
-        windoo < devRef.current.offsetTop
-      ) {
-        contactNavRef.current.setAttribute("id", "active4");
-        homeNavRef.current.removeAttribute("id");
-        aboutUsNavRef.current.removeAttribute("id");
-        ideasNavRef.current.removeAttribute("id");
-        textSphereNavRef.current.removeAttribute("id");
-        devNavRef.current.removeAttribute("id");
-        chatbotNavRef.current.removeAttribute("id");
-        logoRef.current.setAttribute("id", "blue");
-      } else if (
-        windoo >= devRef.current.offsetTop &&
-        windoo < chatbotRef.current.offsetTop
-      ) {
-        devNavRef.current.setAttribute("id", "active5");
-        homeNavRef.current.removeAttribute("id");
-        aboutUsNavRef.current.removeAttribute("id");
-        ideasNavRef.current.removeAttribute("id");
-        textSphereNavRef.current.removeAttribute("id");
-        contactNavRef.current.removeAttribute("id");
-        chatbotNavRef.current.removeAttribute("id");
-        logoRef.current.removeAttribute("id", "blue");
-      } else if (windoo >= chatbotRef.current.offsetTop) {
-        chatbotNavRef.current.setAttribute("id", "active7");
-        homeNavRef.current.removeAttribute("id");
-        aboutUsNavRef.current.removeAttribute("id");
-        ideasNavRef.current.removeAttribute("id");
-        textSphereNavRef.current.removeAttribute("id");
-        contactNavRef.current.removeAttribute("id");
-        devNavRef.current.removeAttribute("id");
-        logoRef.current.removeAttribute("id", "blue");
+      setNavbarActiveSection(currentSection);
+      setNavbarTheme(currentTheme);
+
+      // Handle navbar visibility based on scroll
+      setIsScrolling(true);
+      setNavbarVisible(true);
+      setLastScrollY(currentScrollY);
+
+      // Clear existing scroll timeout
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+
+      // Set scrolling to false after scroll stops
+      scrollTimeoutRef.current = setTimeout(() => {
+        setIsScrolling(false);
+        startInactivityTimer();
+      }, 1000); // 1 second after scroll stops
+    };
+
+    const handleMouseMove = () => {
+      setIsMouseMoving(true);
+      setNavbarVisible(true);
+      
+      // Clear existing mouse timeout
+      if (mouseTimeoutRef.current) {
+        clearTimeout(mouseTimeoutRef.current);
+      }
+
+      // Set mouse moving to false after movement stops
+      mouseTimeoutRef.current = setTimeout(() => {
+        setIsMouseMoving(false);
+        if (!isScrolling) {
+          startInactivityTimer();
+        }
+      }, 500); // 0.5 seconds after mouse stops moving
+    };
+
+    const handleMouseEnter = () => {
+      setNavbarVisible(true);
+      setIsMouseMoving(true);
+    };
+
+    const handleMouseLeave = () => {
+      setIsMouseMoving(false);
+      if (!isScrolling) {
+        startInactivityTimer();
       }
     };
 
-    window.addEventListener("scroll", handleScroll);
-
-    handleScroll();
+    // Add event listeners
+    window.addEventListener("scroll", handleNavbarScroll);
+    document.addEventListener("mousemove", handleMouseMove);
+    
+    // Add mouse enter/leave specifically for navbar
+    const navbarElement = document.getElementById('navbar');
+    if (navbarElement) {
+      navbarElement.addEventListener("mouseenter", handleMouseEnter);
+      navbarElement.addEventListener("mouseleave", handleMouseLeave);
+    }
+    
+    // Initial call and start inactivity timer
+    handleNavbarScroll();
+    startInactivityTimer();
 
     return () => {
-      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("scroll", handleNavbarScroll);
+      document.removeEventListener("mousemove", handleMouseMove);
+      
+      if (navbarElement) {
+        navbarElement.removeEventListener("mouseenter", handleMouseEnter);
+        navbarElement.removeEventListener("mouseleave", handleMouseLeave);
+      }
+      
+      // Clear all timeouts
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+      if (mouseTimeoutRef.current) {
+        clearTimeout(mouseTimeoutRef.current);
+      }
+      if (inactivityTimeoutRef.current) {
+        clearTimeout(inactivityTimeoutRef.current);
+      }
     };
-  }, []);
+  }, [isScrolling, isMouseMoving]);
 
   // Handle logout
-  const handleLogout = () => {
-    localStorage.removeItem("token");
+  const handleNavbarLogout = () => {
     setIsLoggedIn(false);
   };
 
   return (
-    <nav className="navbar">
-      <div className="logobox">
-        <svg
-          className="logo"
-          ref={logoRef}
-          viewBox="0 0 85 103"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          </svg>
-      </div>
-      <div
-        className={menuOpen ? "openPage" : "navlinks"}
-        id="navlinks"
-        ref={navlinksRef}
-      >
-        <a className="one" href="#one" ref={homeNavRef}>
-          Home
-        </a>
-        <a className="aboutUs" href="#aboutUs" ref={aboutUsNavRef}>
-          About Us
-        </a>
-        <a className="two" href="#two" ref={ideasNavRef}>
-          Ideas
-        </a>
-        <a className="three" href="#TextShpere" ref={textSphereNavRef}>
-          TextShpere
-        </a>
-        <a className="four" href="#four" ref={contactNavRef}>
-          Contact
-        </a>
-        <a className="five" href="#dev" ref={devNavRef}>
-          Dev
-        </a>
-        <a className="six" href="#chatbot" ref={chatbotNavRef}>
-          Chatbot
-        </a>
-      </div>
-      <div className="auth-buttons">
-        {isLoggedIn ? (
-          <button
-            className="auth-btn logout-btn"
-            onClick={handleLogout}
-          >
-            Logout
-          </button>
-        ) : (
-          <a
-            href="/login"
-            className="auth-btn login-btn"
-          >
-            Login
-          </a>
-        )}
-      </div>
-
-      <div className="ham-right">
-        <div
-          className={`hamburger-menu ${menuOpen ? "open" : ""}`}
-          id="hamburger-menu"
-          onClick={toggleMenu}
-        >
+    <section id="navbar">
+      <nav className={`navbar-container ${navbarTheme === 'dark' ? 'navbar-dark-theme' : 'navbar-light-theme'} ${navbarVisible ? 'navbar-visible' : 'navbar-hidden'}`}>
+        {/* Logo Section - 10% width */}
+        <div className="navbar-logobox">
           <svg
-            viewBox="0 0 22 23"
-            fill="none"
+            className="navbar-logo"
+            ref={navbarLogoRef}
+            viewBox="0 0 85 103"
             xmlns="http://www.w3.org/2000/svg"
           >
-            <path id="top-line" d="M0 1H11H22" stroke="#E7EAEE" />
-            <line
-              id="bottom-line"
-              y1="22.5"
-              x2="22"
-              y2="22.5"
-              stroke="#E7EAEE"
-            />
-            <line
-              id="middle-line"
-              y1="11.5"
-              x2="22"
-              y2="11.5"
-              stroke="#E7EAEE"
-            />
+            <circle cx="42.5" cy="51.5" r="40" fill="currentColor" />
           </svg>
         </div>
-      </div>
-    </nav>
+        
+        {/* Free Space - 15% width */}
+        <div className="navbar-spacer-left"></div>
+        
+        {/* Navigation Links - 55% width */}
+        <div
+          className={navbarMenuOpen ? "navbar-openpage" : "navbar-links"}
+          id="navbar-links"
+          ref={navbarLinksRef}
+        >
+          {navbarSections.map((section, index) => (
+            <a 
+              key={section.id}
+              className={`navbar-link navbar-link-${section.id} ${navbarActiveSection === section.id ? 'navbar-active' : ''}`}
+              href={`#${section.id}`}
+              ref={el => navbarNavRefs.current[section.id] = el}
+            >
+              {section.label}
+            </a>
+          ))}
+        </div>
+
+        {/* Free Space - 5% width */}
+        <div className="navbar-spacer-right"></div>
+
+        {/* Auth Buttons - 15% width */}
+        <div className="navbar-auth-buttons">
+          {isLoggedIn ? (
+            <button
+              className="navbar-auth-btn navbar-logout-btn"
+              onClick={handleNavbarLogout}
+            >
+              Logout
+            </button>
+          ) : (
+            <a
+              href="/login"
+              className="navbar-auth-btn navbar-login-btn"
+            >
+              Login
+            </a>
+          )}
+        </div>
+
+        <div className="navbar-ham-right">
+          <div
+            className={`navbar-hamburger-menu ${navbarMenuOpen ? "navbar-open" : ""}`}
+            id="navbar-hamburger-menu"
+            onClick={toggleNavbarMenu}
+          >
+            <svg
+              viewBox="0 0 22 23"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path id="navbar-top-line" d="M0 1H11H22" stroke="currentColor" />
+              <line
+                id="navbar-bottom-line"
+                y1="22.5"
+                x2="22"
+                y2="22.5"
+                stroke="currentColor"
+              />
+              <line
+                id="navbar-middle-line"
+                y1="11.5"
+                x2="22"
+                y2="11.5"
+                stroke="currentColor"
+              />
+            </svg>
+          </div>
+        </div>
+      </nav>
+    </section>
   );
 };
 
