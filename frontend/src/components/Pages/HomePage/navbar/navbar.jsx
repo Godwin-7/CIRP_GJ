@@ -7,7 +7,7 @@ import "@fontsource/poppins/900.css"; // Black
 
 const Navbar = () => {
   const [navbarMenuOpen, setNavbarMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // Removed localStorage usage
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [navbarActiveSection, setNavbarActiveSection] = useState('home');
   const [navbarTheme, setNavbarTheme] = useState('light');
   const [navbarVisible, setNavbarVisible] = useState(true);
@@ -39,6 +39,10 @@ const Navbar = () => {
     setNavbarMenuOpen(!navbarMenuOpen);
   };
 
+  const closeNavbarMenu = () => {
+    setNavbarMenuOpen(false);
+  };
+
   const startInactivityTimer = () => {
     if (inactivityTimeoutRef.current) {
       clearTimeout(inactivityTimeoutRef.current);
@@ -52,6 +56,10 @@ const Navbar = () => {
   };
 
   useEffect(() => {
+    // Check if user is logged in (you can modify this logic based on your auth system)
+    const token = localStorage.getItem("token");
+    setIsLoggedIn(!!token);
+    
     // Initialize refs for each section
     navbarSections.forEach(section => {
       navbarNavRefs.current[section.id] = React.createRef();
@@ -165,6 +173,7 @@ const Navbar = () => {
 
   // Handle logout
   const handleNavbarLogout = () => {
+    localStorage.removeItem("token");
     setIsLoggedIn(false);
   };
 
@@ -186,9 +195,17 @@ const Navbar = () => {
         {/* Free Space - 15% width */}
         <div className="navbar-spacer-left"></div>
         
+        {/* Mobile menu backdrop */}
+        {navbarMenuOpen && (
+          <div 
+            className={`navbar-menu-backdrop ${navbarMenuOpen ? 'navbar-backdrop-open' : ''}`}
+            onClick={() => setNavbarMenuOpen(false)}
+          />
+        )}
+
         {/* Navigation Links - 55% width */}
         <div
-          className={navbarMenuOpen ? "navbar-openpage" : "navbar-links"}
+          className={navbarMenuOpen ? "navbar-openpage navbar-menu-open" : "navbar-links"}
           id="navbar-links"
           ref={navbarLinksRef}
         >
@@ -198,6 +215,7 @@ const Navbar = () => {
               className={`navbar-link navbar-link-${section.id} ${navbarActiveSection === section.id ? 'navbar-active' : ''}`}
               href={`#${section.id}`}
               ref={el => navbarNavRefs.current[section.id] = el}
+              onClick={closeNavbarMenu}
             >
               {section.label}
             </a>
@@ -225,6 +243,22 @@ const Navbar = () => {
             </a>
           )}
         </div>
+
+        {/* Mobile menu backdrop */}
+        {navbarMenuOpen && (
+          <div 
+            className={`navbar-menu-backdrop ${navbarMenuOpen ? 'navbar-backdrop-open' : ''}`}
+            onClick={() => setNavbarMenuOpen(false)}
+          />
+        )}
+
+        {/* Mobile menu backdrop */}
+        {navbarMenuOpen && (
+          <div 
+            className={`navbar-menu-backdrop ${navbarMenuOpen ? 'navbar-backdrop-open' : ''}`}
+            onClick={() => setNavbarMenuOpen(false)}
+          />
+        )}
 
         <div className="navbar-ham-right">
           <div
