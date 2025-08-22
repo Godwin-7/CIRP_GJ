@@ -1,4 +1,4 @@
-// controllers/domainController.js
+// controllers/domainController.js - Enhanced with improved search functionality and data fetching
 const { validationResult } = require('express-validator');
 const Domain = require('../models/Domain');
 const Idea = require('../models/Idea');
@@ -66,7 +66,7 @@ const parseAndValidateTopics = (topicsData) => {
   }
 };
 
-// Get all domains with enhanced functionality
+// Enhanced: Get all domains with improved error handling and data fetching
 exports.getAllDomains = async (req, res) => {
   try {
     const { 
@@ -80,8 +80,12 @@ exports.getAllDomains = async (req, res) => {
       order = 'desc'
     } = req.query;
 
+    console.log('Get all domains request:', { category, search, featured, isActive, page, limit, sort, order });
+
     // Build filter object
-    const filter = { isActive };
+    const filter = { 
+      isActive: isActive === 'false' ? false : true  // Handle string 'false'
+    };
     
     if (category && category !== 'all') {
       filter.category = category;
@@ -90,9 +94,6 @@ exports.getAllDomains = async (req, res) => {
     if (featured !== undefined) {
       filter['featured.isFeatured'] = featured === 'true';
     }
-
-    // Build query
-    let query = Domain.find(filter);
 
     // Add search if provided
     if (search && search.trim()) {
@@ -104,17 +105,22 @@ exports.getAllDomains = async (req, res) => {
       ];
     }
 
-    // Apply population and sorting
-    query = query
-      .populate('createdBy', 'username fullName profileImage')
-      .sort({ [sort]: order === 'desc' ? -1 : 1 })
-      .limit(parseInt(limit))
-      .skip((parseInt(page) - 1) * parseInt(limit));
+    console.log('Domain filter:', JSON.stringify(filter));
 
-    const domains = await query;
+    // Apply population and sorting
+    const sortObj = { [sort]: order === 'desc' ? -1 : 1 };
+    
+    const domains = await Domain.find(filter)
+      .populate('createdBy', 'username fullName profileImage')
+      .sort(sortObj)
+      .limit(parseInt(limit))
+      .skip((parseInt(page) - 1) * parseInt(limit))
+      .lean(); // Use lean for better performance
     
     // Get total count for pagination
     const total = await Domain.countDocuments(filter);
+
+    console.log(`Found ${domains.length} domains out of ${total} total`);
 
     // Populate with idea counts and ensure imageUrl compatibility
     const domainsWithStats = await Promise.all(
@@ -124,11 +130,12 @@ exports.getAllDomains = async (req, res) => {
           isActive: true 
         });
         
-        const domainObj = domain.toObject();
         return {
-          ...domainObj,
+          ...domain,
           ideaCount,
-          totalTopics: domain.totalTopics,
+          totalTopics: (domain.topics?.easy?.length || 0) + 
+                       (domain.topics?.medium?.length || 0) + 
+                       (domain.topics?.hard?.length || 0),
           // Ensure both field names for compatibility
           imageurl: domain.imageUrl,
           imageUrl: domain.imageUrl
@@ -149,7 +156,7 @@ exports.getAllDomains = async (req, res) => {
   }
 };
 
-// Get domain by ID with enhanced functionality
+// Enhanced: Get domain by ID with improved data fetching
 exports.getDomainById = async (req, res) => {
   try {
     const { domainId } = req.params;
@@ -157,7 +164,8 @@ exports.getDomainById = async (req, res) => {
     
     const domain = await Domain.findById(domainId)
       .populate('createdBy', 'username fullName profileImage bio')
-      .populate('moderators', 'username fullName profileImage');
+      .populate('moderators', 'username fullName profileImage')
+      .lean(); // Use lean for better performance
 
     if (!domain || !domain.isActive) {
       console.log('Domain not found or inactive for ID:', domainId);
@@ -178,15 +186,15 @@ exports.getDomainById = async (req, res) => {
     })
     .populate('author', 'authorName profileImage authorEmail')
     .populate('createdBy', 'username fullName profileImage')
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .lean(); // Use lean for better performance
 
     console.log('Ideas found for domain:', ideas.length);
     
-    // Add view if user is authenticated and different from creator
-    if (req.userId && req.userId !== domain.createdBy._id.toString()) {
-      domain.stats.totalViews += 1;
-      await domain.save();
-    }
+    // Calculate total topics
+    const totalTopics = (domain.topics?.easy?.length || 0) + 
+                       (domain.topics?.medium?.length || 0) + 
+                       (domain.topics?.hard?.length || 0);
 
     // Build response with all necessary fields
     const responseData = {
@@ -199,10 +207,10 @@ exports.getDomainById = async (req, res) => {
       imageUrl: domain.imageUrl,
       category: domain.category,
       tags: domain.tags || [],
-      topics: domain.topics,
-      stats: domain.stats,
-      settings: domain.settings,
-      featured: domain.featured,
+      topics: domain.topics || { easy: [], medium: [], hard: [] },
+      stats: domain.stats || { totalViews: 0, totalLikes: 0, totalShares: 0 },
+      settings: domain.settings || { allowComments: true, requireModeration: false, isPublic: true },
+      featured: domain.featured || { isFeatured: false },
       isActive: domain.isActive,
       createdAt: domain.createdAt,
       updatedAt: domain.updatedAt,
@@ -210,7 +218,7 @@ exports.getDomainById = async (req, res) => {
       moderators: domain.moderators || [],
       // Add ideas array for frontend
       ideas: ideas,
-      totalTopics: domain.totalTopics,
+      totalTopics,
       ideaCount: ideas.length,
       // Add admin permissions for frontend
       canEdit: req.userId && (req.userId === domain.createdBy._id.toString() || req.user?.isAdmin),
@@ -225,10 +233,24 @@ exports.getDomainById = async (req, res) => {
       hasImageUrl: !!responseData.imageUrl,
       hasTags: !!responseData.tags,
       hasTopics: !!responseData.topics,
+      totalTopics: responseData.totalTopics,
       canEdit: responseData.canEdit,
       canDelete: responseData.canDelete,
       isAdmin: responseData.isAdmin
     });
+
+    // Update view count if user is authenticated and different from creator
+    if (req.userId && req.userId !== domain.createdBy._id.toString()) {
+      try {
+        await Domain.findByIdAndUpdate(domainId, {
+          $inc: { 'stats.totalViews': 1 }
+        });
+        responseData.stats.totalViews += 1;
+      } catch (viewError) {
+        console.log('Failed to update view count:', viewError.message);
+        // Don't fail the request for view count update failure
+      }
+    }
 
     // Return domain data directly for frontend compatibility
     res.json(responseData);
@@ -243,7 +265,7 @@ exports.getDomainById = async (req, res) => {
   }
 };
 
-// Create new domain with comprehensive validation
+// Enhanced: Create new domain with comprehensive validation
 exports.createDomain = async (req, res) => {
   try {
     console.log('Creating domain - Request body:', {
@@ -363,6 +385,9 @@ exports.createDomain = async (req, res) => {
     // Populate the created domain for response
     await savedDomain.populate('createdBy', 'username fullName profileImage');
 
+    // Calculate totalTopics
+    const totalTopics = parsedTopics.easy.length + parsedTopics.medium.length + parsedTopics.hard.length;
+
     res.status(201).json({
       success: true,
       message: 'Domain created successfully',
@@ -371,7 +396,7 @@ exports.createDomain = async (req, res) => {
           ...savedDomain.toObject(),
           // Ensure both field names for compatibility
           imageurl: savedDomain.imageUrl,
-          totalTopics: savedDomain.totalTopics
+          totalTopics
         }
       }
     });
@@ -395,7 +420,7 @@ exports.createDomain = async (req, res) => {
   }
 };
 
-// Update domain with enhanced functionality
+// Enhanced: Update domain with comprehensive validation
 exports.updateDomain = async (req, res) => {
   try {
     const { domainId } = req.params;
@@ -466,6 +491,11 @@ exports.updateDomain = async (req, res) => {
 
     console.log('Domain updated successfully:', updatedDomain._id);
 
+    // Calculate totalTopics
+    const totalTopics = (updatedDomain.topics?.easy?.length || 0) + 
+                       (updatedDomain.topics?.medium?.length || 0) + 
+                       (updatedDomain.topics?.hard?.length || 0);
+
     res.json({
       success: true,
       message: 'Domain updated successfully',
@@ -473,7 +503,7 @@ exports.updateDomain = async (req, res) => {
         domain: {
           ...updatedDomain.toObject(),
           imageurl: updatedDomain.imageUrl,
-          totalTopics: updatedDomain.totalTopics
+          totalTopics
         }
       }
     });
@@ -488,7 +518,7 @@ exports.updateDomain = async (req, res) => {
   }
 };
 
-// Delete domain with enhanced logic (supports both admin and regular users)
+// Enhanced: Delete domain with improved logic (supports both admin and regular users)
 exports.deleteDomain = async (req, res) => {
   try {
     const { domainId } = req.params;
@@ -552,13 +582,13 @@ exports.deleteDomain = async (req, res) => {
   }
 };
 
-// Get domain topics with enhanced filtering
+// Enhanced: Get domain topics with better filtering
 exports.getDomainTopics = async (req, res) => {
   try {
     const { domainId } = req.params;
     const { level, format = 'grouped' } = req.query;
 
-    const domain = await Domain.findById(domainId).select('title topics');
+    const domain = await Domain.findById(domainId).select('title topics').lean();
     
     if (!domain) {
       return res.status(404).json({
@@ -567,11 +597,12 @@ exports.getDomainTopics = async (req, res) => {
       });
     }
 
+    const domainTopics = domain.topics || { easy: [], medium: [], hard: [] };
     let topics = [];
     
     if (level && ['easy', 'medium', 'hard'].includes(level)) {
       // Return topics for specific level
-      topics = domain.topics[level] || [];
+      topics = domainTopics[level] || [];
       
       if (format === 'flat') {
         topics = topics.map(topic => ({ topic, level }));
@@ -580,14 +611,18 @@ exports.getDomainTopics = async (req, res) => {
       // Return all topics
       if (format === 'flat') {
         topics = [
-          ...domain.topics.easy.map(topic => ({ topic, level: 'easy' })),
-          ...domain.topics.medium.map(topic => ({ topic, level: 'medium' })),
-          ...domain.topics.hard.map(topic => ({ topic, level: 'hard' }))
+          ...(domainTopics.easy || []).map(topic => ({ topic, level: 'easy' })),
+          ...(domainTopics.medium || []).map(topic => ({ topic, level: 'medium' })),
+          ...(domainTopics.hard || []).map(topic => ({ topic, level: 'hard' }))
         ];
       } else {
-        topics = domain.topics;
+        topics = domainTopics;
       }
     }
+
+    const totalTopics = (domainTopics.easy?.length || 0) + 
+                       (domainTopics.medium?.length || 0) + 
+                       (domainTopics.hard?.length || 0);
 
     res.json({
       success: true,
@@ -599,7 +634,7 @@ exports.getDomainTopics = async (req, res) => {
         topics,
         level: level || 'all',
         format,
-        totalTopics: domain.totalTopics
+        totalTopics
       }
     });
 
@@ -613,12 +648,12 @@ exports.getDomainTopics = async (req, res) => {
   }
 };
 
-// Get domain statistics with comprehensive data
+// Enhanced: Get domain statistics with comprehensive data
 exports.getDomainStats = async (req, res) => {
   try {
     const { domainId } = req.params;
 
-    const domain = await Domain.findById(domainId);
+    const domain = await Domain.findById(domainId).lean();
     
     if (!domain) {
       return res.status(404).json({
@@ -653,7 +688,13 @@ exports.getDomainStats = async (req, res) => {
         .sort({ createdAt: -1 })
         .limit(5)
         .select('title createdAt difficulty category')
+        .lean()
     ]);
+
+    const domainTopics = domain.topics || { easy: [], medium: [], hard: [] };
+    const totalTopics = (domainTopics.easy?.length || 0) + 
+                       (domainTopics.medium?.length || 0) + 
+                       (domainTopics.hard?.length || 0);
 
     const stats = {
       domain: {
@@ -672,13 +713,13 @@ exports.getDomainStats = async (req, res) => {
         totalLikes: ideaStats[0]?.totalLikes || 0,
         totalViews: ideaStats[0]?.totalViews || 0,
         totalComments: ideaStats[0]?.totalComments || 0,
-        domainViews: domain.stats.totalViews
+        domainViews: domain.stats?.totalViews || 0
       },
       topics: {
-        easy: domain.topics.easy.length,
-        medium: domain.topics.medium.length,
-        hard: domain.topics.hard.length,
-        total: domain.totalTopics
+        easy: domainTopics.easy?.length || 0,
+        medium: domainTopics.medium?.length || 0,
+        hard: domainTopics.hard?.length || 0,
+        total: totalTopics
       },
       metadata: {
         tags: domain.tags?.length || 0,
@@ -702,7 +743,7 @@ exports.getDomainStats = async (req, res) => {
   }
 };
 
-// Search domains with enhanced functionality
+// Enhanced: Search domains with improved functionality
 exports.searchDomains = async (req, res) => {
   try {
     const { 
@@ -739,6 +780,8 @@ exports.searchDomains = async (req, res) => {
 
     // Create text search or regex search based on MongoDB text index availability
     let searchFilter;
+    let domains;
+    
     try {
       // Try text search first
       searchFilter = {
@@ -746,44 +789,14 @@ exports.searchDomains = async (req, res) => {
         $text: { $search: searchQuery }
       };
       
-      const domains = await Domain.find(searchFilter, { score: { $meta: "textScore" } })
+      domains = await Domain.find(searchFilter, { score: { $meta: "textScore" } })
         .populate('createdBy', 'username fullName profileImage')
         .sort(sort === 'relevance' ? { score: { $meta: "textScore" } } : { [sort]: -1 })
         .limit(parseInt(limit))
-        .skip((parseInt(page) - 1) * parseInt(limit));
+        .skip((parseInt(page) - 1) * parseInt(limit))
+        .lean();
 
-      // Add idea counts and ensure compatibility
-      const domainsWithStats = await Promise.all(
-        domains.map(async (domain) => {
-          const ideaCount = await Idea.countDocuments({ 
-            domain: domain._id, 
-            isActive: true 
-          });
-          
-          return {
-            ...domain.toObject(),
-            ideaCount,
-            totalTopics: domain.totalTopics,
-            imageurl: domain.imageUrl,
-            score: domain._doc.score // Include search relevance score
-          };
-        })
-      );
-
-      res.json({
-        success: true,
-        data: {
-          domains: domainsWithStats,
-          query: searchQuery,
-          filters: { category, tags, difficulty },
-          pagination: {
-            current: parseInt(page),
-            count: domainsWithStats.length,
-            hasMore: domainsWithStats.length === parseInt(limit)
-          },
-          searchMethod: 'text'
-        }
-      });
+      console.log(`Text search found ${domains.length} domains`);
 
     } catch (textSearchError) {
       console.log('Text search failed, falling back to regex search:', textSearchError.message);
@@ -799,44 +812,52 @@ exports.searchDomains = async (req, res) => {
         ]
       };
 
-      const domains = await Domain.find(searchFilter)
+      domains = await Domain.find(searchFilter)
         .populate('createdBy', 'username fullName profileImage')
         .sort({ [sort === 'relevance' ? 'createdAt' : sort]: -1 })
         .limit(parseInt(limit))
-        .skip((parseInt(page) - 1) * parseInt(limit));
+        .skip((parseInt(page) - 1) * parseInt(limit))
+        .lean();
 
-      // Add idea counts and ensure compatibility
-      const domainsWithStats = await Promise.all(
-        domains.map(async (domain) => {
-          const ideaCount = await Idea.countDocuments({ 
-            domain: domain._id, 
-            isActive: true 
-          });
-          
-          return {
-            ...domain.toObject(),
-            ideaCount,
-            totalTopics: domain.totalTopics,
-            imageurl: domain.imageUrl
-          };
-        })
-      );
-
-      res.json({
-        success: true,
-        data: {
-          domains: domainsWithStats,
-          query: searchQuery,
-          filters: { category, tags, difficulty },
-          pagination: {
-            current: parseInt(page),
-            count: domainsWithStats.length,
-            hasMore: domainsWithStats.length === parseInt(limit)
-          },
-          searchMethod: 'regex'
-        }
-      });
+      console.log(`Regex search found ${domains.length} domains`);
     }
+
+    // Add idea counts and ensure compatibility
+    const domainsWithStats = await Promise.all(
+      domains.map(async (domain) => {
+        const ideaCount = await Idea.countDocuments({ 
+          domain: domain._id, 
+          isActive: true 
+        });
+        
+        const totalTopics = (domain.topics?.easy?.length || 0) + 
+                           (domain.topics?.medium?.length || 0) + 
+                           (domain.topics?.hard?.length || 0);
+        
+        return {
+          ...domain,
+          ideaCount,
+          totalTopics,
+          imageurl: domain.imageUrl,
+          score: domain.score // Include search relevance score if available
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      data: {
+        domains: domainsWithStats,
+        query: searchQuery,
+        filters: { category, tags, difficulty },
+        pagination: {
+          current: parseInt(page),
+          count: domainsWithStats.length,
+          hasMore: domainsWithStats.length === parseInt(limit)
+        },
+        searchMethod: domains.length > 0 && domains[0].score ? 'text' : 'regex'
+      }
+    });
 
   } catch (error) {
     console.error('Search domains error:', error);
