@@ -44,19 +44,21 @@ const Navbar = () => {
   };
 
   const startInactivityTimer = () => {
+    // Clear any existing timer
     if (inactivityTimeoutRef.current) {
       clearTimeout(inactivityTimeoutRef.current);
     }
     
-    inactivityTimeoutRef.current = setTimeout(() => {
-      if (!isScrolling && !isMouseMoving) {
+    // Only start timer if not scrolling and not moving mouse
+    if (!isScrolling && !isMouseMoving) {
+      inactivityTimeoutRef.current = setTimeout(() => {
         setNavbarVisible(false);
-      }
-    }, 5000); // Hide after 5 seconds of inactivity
+      }, 3000); // Hide after 3 seconds of inactivity
+    }
   };
 
   useEffect(() => {
-    // Check if user is logged in (you can modify this logic based on your auth system)
+    // Check if user is logged in
     const token = localStorage.getItem("token");
     setIsLoggedIn(!!token);
     
@@ -66,7 +68,7 @@ const Navbar = () => {
     });
 
     const handleNavbarScroll = () => {
-      const scrollPosition = window.pageYOffset + 100; // Offset for better detection
+      const scrollPosition = window.pageYOffset + 100;
       const currentScrollY = window.pageYOffset;
       
       let currentSection = 'home';
@@ -87,7 +89,7 @@ const Navbar = () => {
       setNavbarActiveSection(currentSection);
       setNavbarTheme(currentTheme);
 
-      // Handle navbar visibility based on scroll
+      // Show navbar and mark as scrolling
       setIsScrolling(true);
       setNavbarVisible(true);
       setLastScrollY(currentScrollY);
@@ -100,8 +102,7 @@ const Navbar = () => {
       // Set scrolling to false after scroll stops
       scrollTimeoutRef.current = setTimeout(() => {
         setIsScrolling(false);
-        startInactivityTimer();
-      }, 1000); // 1 second after scroll stops
+      }, 150); // Shorter delay to detect scroll stop faster
     };
 
     const handleMouseMove = () => {
@@ -116,10 +117,7 @@ const Navbar = () => {
       // Set mouse moving to false after movement stops
       mouseTimeoutRef.current = setTimeout(() => {
         setIsMouseMoving(false);
-        if (!isScrolling) {
-          startInactivityTimer();
-        }
-      }, 500); // 0.5 seconds after mouse stops moving
+      }, 300); // Shorter delay
     };
 
     const handleMouseEnter = () => {
@@ -129,9 +127,6 @@ const Navbar = () => {
 
     const handleMouseLeave = () => {
       setIsMouseMoving(false);
-      if (!isScrolling) {
-        startInactivityTimer();
-      }
     };
 
     // Add event listeners
@@ -145,9 +140,8 @@ const Navbar = () => {
       navbarElement.addEventListener("mouseleave", handleMouseLeave);
     }
     
-    // Initial call and start inactivity timer
+    // Initial call
     handleNavbarScroll();
-    startInactivityTimer();
 
     return () => {
       window.removeEventListener("scroll", handleNavbarScroll);
@@ -169,6 +163,11 @@ const Navbar = () => {
         clearTimeout(inactivityTimeoutRef.current);
       }
     };
+  }, []);
+
+  // Effect to handle inactivity timer based on scroll and mouse state
+  useEffect(() => {
+    startInactivityTimer();
   }, [isScrolling, isMouseMoving]);
 
   // Handle logout
@@ -178,119 +177,123 @@ const Navbar = () => {
   };
 
   return (
-    <section id="navbar">
-      <nav className={`navbar-container ${navbarTheme === 'dark' ? 'navbar-dark-theme' : 'navbar-light-theme'} ${navbarVisible ? 'navbar-visible' : 'navbar-hidden'}`}>
-        {/* Logo Section - 10% width */}
-        <div className="navbar-logobox">
-          <svg
-            className="navbar-logo"
-            ref={navbarLogoRef}
-            viewBox="0 0 85 103"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <circle cx="42.5" cy="51.5" r="40" fill="currentColor" />
-          </svg>
-        </div>
-        
-        {/* Free Space - 15% width */}
-        <div className="navbar-spacer-left"></div>
-        
-        {/* Mobile menu backdrop */}
-        {navbarMenuOpen && (
-          <div 
-            className={`navbar-menu-backdrop ${navbarMenuOpen ? 'navbar-backdrop-open' : ''}`}
-            onClick={() => setNavbarMenuOpen(false)}
-          />
-        )}
+    <>
+      {/* Mobile menu backdrop */}
+      {navbarMenuOpen && (
+        <div 
+          className={`navbar-menu-backdrop ${navbarMenuOpen ? 'navbar-backdrop-open' : ''}`}
+          onClick={() => setNavbarMenuOpen(false)}
+        />
+      )}
 
-        {/* Navigation Links - 55% width */}
+      {/* Mobile menu - positioned outside navbar container */}
+      {navbarMenuOpen && (
         <div
-          className={navbarMenuOpen ? "navbar-openpage navbar-menu-open" : "navbar-links"}
-          id="navbar-links"
-          ref={navbarLinksRef}
+          className={`navbar-openpage ${navbarMenuOpen ? "navbar-menu-open" : ""}`}
+          id="navbar-mobile-menu"
         >
           {navbarSections.map((section, index) => (
             <a 
               key={section.id}
               className={`navbar-link navbar-link-${section.id} ${navbarActiveSection === section.id ? 'navbar-active' : ''}`}
               href={`#${section.id}`}
-              ref={el => navbarNavRefs.current[section.id] = el}
               onClick={closeNavbarMenu}
             >
               {section.label}
             </a>
           ))}
         </div>
+      )}
 
-        {/* Free Space - 5% width */}
-        <div className="navbar-spacer-right"></div>
-
-        {/* Auth Buttons - 15% width */}
-        <div className="navbar-auth-buttons">
-          {isLoggedIn ? (
-            <button
-              className="navbar-auth-btn navbar-logout-btn"
-              onClick={handleNavbarLogout}
-            >
-              Logout
-            </button>
-          ) : (
-            <a
-              href="/login"
-              className="navbar-auth-btn navbar-login-btn"
-            >
-              Login
-            </a>
-          )}
-        </div>
-
-        {/* Mobile menu backdrop */}
-        {navbarMenuOpen && (
-          <div 
-            className={`navbar-menu-backdrop ${navbarMenuOpen ? 'navbar-backdrop-open' : ''}`}
-            onClick={() => setNavbarMenuOpen(false)}
-          />
-        )}
-
-        {/* Mobile menu backdrop */}
-        {navbarMenuOpen && (
-          <div 
-            className={`navbar-menu-backdrop ${navbarMenuOpen ? 'navbar-backdrop-open' : ''}`}
-            onClick={() => setNavbarMenuOpen(false)}
-          />
-        )}
-
-        <div className="navbar-ham-right">
-          <div
-            className={`navbar-hamburger-menu ${navbarMenuOpen ? "navbar-open" : ""}`}
-            id="navbar-hamburger-menu"
-            onClick={toggleNavbarMenu}
-          >
+      <section id="navbar">
+        <nav className={`navbar-container ${navbarTheme === 'dark' ? 'navbar-dark-theme' : 'navbar-light-theme'} ${navbarVisible ? 'navbar-visible' : 'navbar-hidden'}`}>
+          {/* Logo Section - 10% width */}
+          <div className="navbar-logobox">
             <svg
-              viewBox="0 0 22 23"
-              fill="none"
+              className="navbar-logo"
+              ref={navbarLogoRef}
+              viewBox="0 0 85 103"
               xmlns="http://www.w3.org/2000/svg"
             >
-              <path id="navbar-top-line" d="M0 1H11H22" stroke="currentColor" />
-              <line
-                id="navbar-bottom-line"
-                y1="22.5"
-                x2="22"
-                y2="22.5"
-                stroke="currentColor"
-              />
-              <line
-                id="navbar-middle-line"
-                y1="11.5"
-                x2="22"
-                y2="11.5"
-                stroke="currentColor"
-              />
+              <circle cx="42.5" cy="51.5" r="40" fill="currentColor" />
             </svg>
           </div>
-        </div>
-      </nav>
-    </section>
+          
+          {/* Free Space - 15% width */}
+          <div className="navbar-spacer-left"></div>
+          
+          {/* Navigation Links - 55% width (desktop only) */}
+          <div
+            className="navbar-links"
+            id="navbar-links"
+            ref={navbarLinksRef}
+          >
+            {navbarSections.map((section, index) => (
+              <a 
+                key={section.id}
+                className={`navbar-link navbar-link-${section.id} ${navbarActiveSection === section.id ? 'navbar-active' : ''}`}
+                href={`#${section.id}`}
+                ref={el => navbarNavRefs.current[section.id] = el}
+              >
+                {section.label}
+              </a>
+            ))}
+          </div>
+
+          {/* Free Space - 5% width */}
+          <div className="navbar-spacer-right"></div>
+
+          {/* Auth Buttons - 15% width */}
+          <div className="navbar-auth-buttons">
+            {isLoggedIn ? (
+              <button
+                className="navbar-auth-btn navbar-logout-btn"
+                onClick={handleNavbarLogout}
+              >
+                Logout
+              </button>
+            ) : (
+              <a
+                href="/login"
+                className="navbar-auth-btn navbar-login-btn"
+              >
+                Login
+              </a>
+            )}
+          </div>
+
+          <div className="navbar-ham-right">
+            <div
+              className={`navbar-hamburger-menu ${navbarMenuOpen ? "navbar-open" : ""}`}
+              id="navbar-hamburger-menu"
+              onClick={toggleNavbarMenu}
+            >
+              <svg
+                viewBox="0 0 22 23"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path id="navbar-top-line" d="M0 1H11H22" stroke="currentColor" />
+                <line
+                  id="navbar-bottom-line"
+                  y1="22.5"
+                  x2="22"
+                  y2="22.5"
+                  stroke="currentColor"
+                />
+                <line
+                  id="navbar-middle-line"
+                  y1="11.5"
+                  x2="22"
+                  y2="11.5"
+                  stroke="currentColor"
+                />
+              </svg>
+            </div>
+          </div>
+        </nav>
+      </section>
+    </>
   );
 };
 
