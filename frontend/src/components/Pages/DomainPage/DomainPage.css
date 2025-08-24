@@ -122,7 +122,7 @@
 .all-domains-title {
   font-size: 2rem;
   font-weight: 900;
-  margin: 40px 0 8px 0; /* More top margin to avoid image overlap, less bottom margin */
+  margin: 60px 0 3px 0; /* Even more top margin to bring heading down, minimal bottom margin */
   transition: transform 0.3s ease;
 }
 
@@ -179,7 +179,7 @@
 }
 
 .all-domains-hover-topics {
-  margin-bottom: 15px; /* Reduced margin */
+  margin-bottom: 8px; /* Further reduced margin to bring button up */
   flex-grow: 0; /* Don't let it grow */
   display: flex;
   flex-direction: column;
@@ -195,8 +195,8 @@
 .all-domains-hover-levels {
   display: flex;
   gap: 10px;
-  margin-top: 10px;
-  margin-bottom: 15px; /* Reduced margin to keep button visible */
+  margin-top: 5px; /* Reduced top margin to bring button up */
+  margin-bottom: 15px; /* Keep some bottom margin */
 }
 
 .all-domains-hover-levels button {
