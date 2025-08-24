@@ -52,15 +52,15 @@ const DomainPage = () => {
   }, []);
 
   if (isLoading) {
-    return <div className="domain-loading">Loading domains...</div>;
+    return <div className="all-domains-loading">Loading domains...</div>;
   }
   if (error) {
-    return <div className="domain-error">Error: {error}</div>;
+    return <div className="all-domains-error">Error: {error}</div>;
   }
 
   const renderDomainCards = () => {
     if (!Array.isArray(Domains) || Domains.length === 0) {
-      return <p className="no-domains-message">No domains available at the moment.</p>;
+      return <p className="all-domains-no-domains-message">No domains available at the moment.</p>;
     }
     
     // Filter domains based on the selected difficulty level.
@@ -71,10 +71,10 @@ const DomainPage = () => {
     return filteredDomains.map((domain) => (
       <div
         key={domain._id}
-        className="domain-card"
+        className="all-domains-card"
         onClick={() => handleDomainClick(domain._id)}
       >
-        <div className="top-image">
+        <div className="all-domains-top-image">
           {/* ✅ FIXED: Image loading with proper error handling */}
           <img
             src={
@@ -94,17 +94,17 @@ const DomainPage = () => {
                 // If even default fails, hide image and show placeholder
                 e.target.style.display = 'none';
                 e.target.parentElement.style.backgroundColor = '#f0f0f0';
-                e.target.parentElement.innerHTML = '<div class="image-placeholder">No Image</div>';
+                e.target.parentElement.innerHTML = '<div class="all-domains-image-placeholder">No Image</div>';
               }
             }}
           />
         </div>
-        <h2 className="domain-title">{domain.title}</h2>
-        <p className="domain-description">{domain.description}</p>
+        <h2 className="all-domains-title">{domain.title}</h2>
+        <p className="all-domains-description">{domain.description}</p>
         
-        <div className="hover-content">
-          <h2 className="hover-domain-title">{domain.title}</h2>
-          <div className="hover-topics">
+        <div className="all-domains-hover-content">
+          <h2 className="all-domains-hover-title">{domain.title}</h2>
+          <div className="all-domains-hover-topics">
             {/* Display topics based on the currently selected level. */}
             {selectedLevel && domain.topics && domain.topics[selectedLevel] && domain.topics[selectedLevel].map((topic, index) => (
                 <p key={index}>{topic}</p>
@@ -124,47 +124,47 @@ const DomainPage = () => {
               </>
             )}
           </div>
-          <div className="hover-levels">
+          <div className="all-domains-hover-levels">
             <button onClick={(e) => { e.stopPropagation(); handleDomainClick(domain._id); }}>View Topics</button>
           </div>
         </div>
-        <button className="click-button">Click Here</button>
+        <button className="all-domains-click-button">Click Here</button>
       </div>
     ));
   };
 
   return (
-    <div className="domain-page">
-      <h1 className="domain-page-title">All Domains</h1>
-      <div className="level-filters">
+    <div id="all-domains" className="all-domains-page">
+      <h1 className="all-domains-page-title">All Domains</h1>
+      <div className="all-domains-level-filters">
         <button
-          className={`level-filter ${selectedLevel === "easy" ? "active" : ""}`}
+          className={`all-domains-level-filter ${selectedLevel === "easy" ? "active" : ""}`}
           onClick={() => handleTopLevelClick("easy")}
         >
           Easy
         </button>
         <button
-          className={`level-filter ${selectedLevel === "medium" ? "active" : ""}`}
+          className={`all-domains-level-filter ${selectedLevel === "medium" ? "active" : ""}`}
           onClick={() => handleTopLevelClick("medium")}
         >
           Medium
         </button>
         <button
-          className={`level-filter ${selectedLevel === "hard" ? "active" : ""}`}
+          className={`all-domains-level-filter ${selectedLevel === "hard" ? "active" : ""}`}
           onClick={() => handleTopLevelClick("hard")}
         >
           Hard
         </button>
       </div>
-      <div className="domains-container">
+      <div className="all-domains-container">
         {renderDomainCards()}
         <div
-          className="domain-card add-domain-card"
+          className="all-domains-card all-domains-add-card"
           onClick={handleAddDomainClick}
         >
-          <h2 className="domain-title">Add New Domain</h2>
-          <p className="domain-description">Click here to add a new domain</p>
-          <button className="click-button">Add Domain</button>
+          <h2 className="all-domains-title">Add New Domain</h2>
+          <p className="all-domains-description">Click here to add a new domain</p>
+          <button className="all-domains-click-button">Add Domain</button>
         </div>
       </div>
     </div>

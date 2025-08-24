@@ -157,9 +157,9 @@ const TitlePage = () => {
 
   if (isLoading) {
     return (
-      <div className="title-page">
-        <div className="loading-container">
-          <div className="spinner"></div>
+      <div id="title-page">
+        <div className="title-page-loading-container">
+          <div className="title-page-spinner"></div>
           <p>Loading domain details...</p>
         </div>
       </div>
@@ -168,8 +168,8 @@ const TitlePage = () => {
 
   if (error) {
     return (
-      <div className="title-page">
-        <div className="error-message">Error: {error}</div>
+      <div id="title-page">
+        <div className="title-page-error-message">Error: {error}</div>
       </div>
     );
   }
@@ -177,54 +177,54 @@ const TitlePage = () => {
   if (!domain) return null;
 
   return (
-    <div className="title-page">
-      <div className="domain-header">
-        <div className="domain-image-container">
+    <div id="title-page">
+      <div className="title-page-domain-header">
+        <div className="title-page-domain-image-container">
           {domain.imageurl || domain.imageUrl ? (
             <img
               src={`http://localhost:5000${domain.imageurl || domain.imageUrl}`}
               alt={domain.title}
-              className="domain-image"
+              className="title-page-domain-image"
               onError={(e) => {
                 console.error('Domain image failed to load:', e.target.src);
                 e.target.src = '/uploads/defaults/default-domain.jpg';
               }}
             />
           ) : (
-            <div className="domain-placeholder"></div>
+            <div className="title-page-domain-placeholder"></div>
           )}
-          <div className="domain-overlay">
-            <h1 className="domain-title">{domain.title}</h1>
+          <div className="title-page-domain-overlay">
+            <h1 className="title-page-domain-title">{domain.title}</h1>
           </div>
         </div>
         
-        <div className="domain-content">
-          <p className="domain-description">{domain.description}</p>
+        <div className="title-page-domain-content">
+          <p className="title-page-domain-description">{domain.description}</p>
           {domain.detailedDescription && (
-            <div className="domain-detailed-description">
+            <div className="title-page-domain-detailed-description">
               <p>{domain.detailedDescription}</p>
             </div>
           )}
 
           {/* Admin/Owner Actions */}
           {(domain.canEdit || domain.canDelete) && (
-            <div className="domain-actions">
+            <div className="title-page-domain-actions">
               <h3>Domain Management</h3>
-              <div className="action-buttons">
+              <div className="title-page-action-buttons">
                 {domain.canEdit && (
-                  <button onClick={handleEditDomain} className="edit-btn">
+                  <button onClick={handleEditDomain} className="title-page-edit-btn">
                     Edit Domain
                   </button>
                 )}
                 {domain.canDelete && (
-                  <button onClick={handleDeleteDomain} className="delete-btn">
+                  <button onClick={handleDeleteDomain} className="title-page-delete-btn">
                     {domain.isAdmin ? 'Delete Domain (Admin)' : 'Archive Domain'}
                   </button>
                 )}
                 {domain.isAdmin && (
                   <button 
                     onClick={() => navigate('/admin')} 
-                    className="admin-panel-btn"
+                    className="title-page-admin-panel-btn"
                   >
                     Admin Dashboard
                   </button>
@@ -235,25 +235,25 @@ const TitlePage = () => {
         </div>
       </div>
 
-      <div className="topics-container">
+      <div className="title-page-topics-container">
         {domain.ideas && domain.ideas.length > 0 ? (
           domain.ideas.map((idea) => (
             <div
               key={idea._id}
-              className="topic-card"
+              className="title-page-topic-card flip-in"
             >
-              <div className="idea-content" onClick={() => handleProject(idea._id)}>
-                <h2 className="topic-title">{idea.title}</h2>
-                <p className="topic-description">{idea.description}</p>
+              <div className="title-page-idea-content" onClick={() => handleProject(idea._id)}>
+                <h2 className="title-page-topic-title">{idea.title}</h2>
+                <p className="title-page-topic-description">{idea.description}</p>
                 {idea.difficulty && (
-                  <span className={`difficulty-badge ${idea.difficulty}`}>
+                  <span className={`title-page-difficulty-badge ${idea.difficulty}`}>
                     {idea.difficulty.toUpperCase()}
                   </span>
                 )}
                 {idea.tags && idea.tags.length > 0 && (
-                  <div className="idea-tags">
+                  <div className="title-page-idea-tags">
                     {idea.tags.slice(0, 3).map((tag, index) => (
-                      <span key={index} className="tag">{tag}</span>
+                      <span key={index} className="title-page-tag">{tag}</span>
                     ))}
                   </div>
                 )}
@@ -261,14 +261,14 @@ const TitlePage = () => {
 
               {/* Idea Management Actions */}
               {(idea.canEdit || idea.canDelete || currentUser?.isAdmin) && (
-                <div className="idea-actions">
+                <div className="title-page-idea-actions">
                   {idea.canDelete && (
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDeleteIdea(idea._id, idea.title);
                       }}
-                      className="delete-idea-btn"
+                      className="title-page-delete-idea-btn"
                       title={currentUser?.isAdmin ? "Permanently delete idea (Admin)" : "Delete idea"}
                     >
                       {currentUser?.isAdmin ? '🗑️ Admin Delete' : '🗑️ Delete'}
@@ -279,19 +279,19 @@ const TitlePage = () => {
             </div>
           ))
         ) : (
-          <p className="no-topics">No ideas available for this domain yet.</p>
+          <p className="title-page-no-topics">No ideas available for this domain yet.</p>
         )}
       </div>
 
       {/* Add Idea Card */}
-      <div className="add-idea-card" onClick={handleAddIdea}>
-        <h2 className="add-idea-title">Have an Idea?</h2>
+      <div className="title-page-add-idea-card" onClick={handleAddIdea}>
+        <h2 className="title-page-add-idea-title">Have an Idea?</h2>
         <p>Click here to share your innovative concept for this domain!</p>
-        <button className="add-idea-button">Add Your Idea</button>
+        <button className="title-page-add-idea-button">Add Your Idea</button>
       </div>
 
       {/* Domain Chat Section */}
-      <div className="chat-section">
+      <div className="title-page-chat-section">
         <Chat domainId={domainId} />
       </div>
     </div>

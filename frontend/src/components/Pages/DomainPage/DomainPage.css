@@ -2,7 +2,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;900&display=swap");
 
 /* Page Styles */
-.domain-page {
+#all-domains.all-domains-page {
   padding: 50px 20px;
   background-color: #001f3f; /* Dark blue background */
   min-height: 100vh;
@@ -10,7 +10,7 @@
   color: #e7eaee;
 }
 
-.domain-page-title {
+.all-domains-page-title {
   text-align: center;
   font-size: 3rem;
   font-weight: 900;
@@ -18,14 +18,14 @@
 }
 
 /* Level Filters */
-.level-filters {
+.all-domains-level-filters {
   display: flex;
   justify-content: center;
   gap: 20px;
   margin-bottom: 40px;
 }
 
-.level-filter {
+.all-domains-level-filter {
   padding: 10px 20px;
   font-size: 1.3rem;
   font-weight: 600;
@@ -35,27 +35,29 @@
   color: #e7eaee;
   cursor: pointer;
   transition: all 0.3s ease;
-  width: auto; /* Ensure buttons only take up necessary width */
-  min-width: 250px; /* Set a minimum width for consistency */
+  width: auto;
+  min-width: 250px;
 }
 
-.level-filter.active,
-.level-filter:hover {
+.all-domains-level-filter.active,
+.all-domains-level-filter:hover {
   background-color: #cc1e4a;
   color: #e7eaee;
   transform: translateY(-2px);
 }
 
-/* Domain Cards */
-.domains-container {
+/* Domain Cards Container */
+.all-domains-container {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 47px;
   padding: 20px;
+  margin-top: 50px; /* Add space for positioned images */
 }
 
-.domain-card {
+/* Domain Cards - Updated layout similar to Ideas section */
+.all-domains-card {
   position: relative;
   width: 350px;
   height: 400px;
@@ -68,62 +70,87 @@
   cursor: pointer;
   overflow: visible;
   transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end; /* Align content to bottom like Ideas section */
+  align-items: center;
+  margin-top: 80px; /* Space for the top image positioned outside */
 }
 
-.domain-card:hover {
+.all-domains-card:hover {
   transform: translateY(-10px);
   box-shadow: -12px 16px 7px 1px rgba(0, 0, 0, 0.6);
   background-color: #cc1e4a;
   color: #e7eaee;
 }
 
-.top-image {
+/* Top Image - Position outside card like Ideas section */
+.all-domains-top-image {
+  position: absolute;
+  top: -80px; /* Position image outside the card at top */
+  left: 50%;
+  transform: translateX(-50%);
   width: 160px;
   height: 160px;
-  margin: -20px auto 30px;
-  background-color: purple;
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff8e8e 100%);
   border-radius: 10px;
+  box-shadow: -2px 6px 2px 1px rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+}
+
+.all-domains-top-image img {
+  width: 150px;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+/* Card Content - Better spacing */
+.all-domains-card-content {
+  margin-top: 40px; /* Space for image */
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Title - Better positioning */
+.all-domains-title {
+  font-size: 2rem;
+  font-weight: 900;
+  margin: 40px 0 8px 0; /* More top margin to avoid image overlap, less bottom margin */
+  transition: transform 0.3s ease;
+}
+
+.all-domains-card:hover .all-domains-title {
+  opacity: 0;
+}
+
+/* Description - Better positioning */
+.all-domains-description {
+  font-size: 1rem;
+  margin-bottom: 15px; /* Reduced margin */
+  transition: opacity 0.3s ease;
+  text-align: center;
+  padding: 0 20px;
+  width: 100%;
+  box-sizing: border-box;
+  flex-grow: 1;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.top-image img {
-  width: 160px;
-  height: auto;
+.all-domains-card:hover .all-domains-description {
+  opacity: 0;
 }
 
-.domain-title {
-  font-size: 2rem;
-  font-weight: 900;
-  margin-top: 120px;
-  transition: transform 0.3s ease;
-  margin-bottom: 15px;
-}
-
-.domain-card:hover .domain-title {
-  opacity: 0; /* Hide default title on hover */
-}
-
-.domain-description {
-  font-size: 1rem;
-  margin-bottom: 20px;
-  transition: opacity 0.3s ease;
-  text-align: center;
-  margin-top: 10px;
-  padding: 0 20px;
-  width: 100%;
-  box-sizing: border-box;
-  display: block;
-  margin-left: 0px;
-}
-
-.domain-card:hover .domain-description {
-  opacity: 0; /* Hide description on hover */
-}
-
-/* Hover Content */
-.hover-content {
+/* Hover Content - Updated positioning */
+.all-domains-hover-content {
   position: absolute;
   top: 0;
   left: 0;
@@ -132,41 +159,47 @@
   background-color: rgba(0, 0, 0, 0.8);
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
+  justify-content: center; /* Center the content vertically */
   align-items: center;
   opacity: 0;
   transition: opacity 0.3s ease;
-  padding-top: 20px;
+  padding: 40px 20px; /* More balanced padding */
   border-radius: 20px;
 }
 
-.domain-card:hover .hover-content {
+.all-domains-card:hover .all-domains-hover-content {
   opacity: 1;
 }
 
-.hover-domain-title {
+.all-domains-hover-title {
   font-size: 2rem;
   font-weight: 900;
-  margin-bottom: 3px;
+  margin-bottom: 20px;
   color: #e7eaee;
 }
 
-.hover-topics {
-  margin-bottom: 1px;
+.all-domains-hover-topics {
+  margin-bottom: 15px; /* Reduced margin */
+  flex-grow: 0; /* Don't let it grow */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
-.hover-topics p {
-  font-size: 1.2rem;
+.all-domains-hover-topics p {
+  font-size: 1rem; /* Reduced from 1.2rem */
   margin: 5px 0;
 }
 
-.hover-levels {
+.all-domains-hover-levels {
   display: flex;
   gap: 10px;
   margin-top: 10px;
+  margin-bottom: 15px; /* Reduced margin to keep button visible */
 }
 
-.hover-levels button {
+.all-domains-hover-levels button {
   padding: 5px 10px;
   font-size: 0.9rem;
   border: 2px solid #e7eaee;
@@ -177,14 +210,13 @@
   transition: all 0.3s ease;
 }
 
-.hover-levels button:hover {
+.all-domains-hover-levels button:hover {
   background-color: #e7eaee;
   color: #cc1e4a;
 }
 
-/* Click Here Button */
-/* Click Here Button - Change from full width to centered with specific width */
-.click-button {
+/* Click Here Button - Better positioning */
+.all-domains-click-button {
   position: absolute;
   bottom: 20px;
   left: 50%;
@@ -197,69 +229,61 @@
   background-color: #cc1e4a;
   color: #e7eaee;
   cursor: pointer;
-  transition: all 0.3s ease;
-  width: auto; /* Change from default (which stretches) to auto */
-  min-width: 120px; /* Add a minimum width to ensure button isn't too small */
-  max-width: 60%; /* Limit width to approximately 60% of the card */
+  transition: all 0.3s ease; /* Smooth transition for all properties */
+  width: auto;
+  min-width: 120px;
+  max-width: 60%;
 }
 
-.domain-card:hover .click-button {
-  background-color: #e7eaee;
-  color: #cc1e4a;
-  bottom: 10px; /* Move the button down during hover */
+.all-domains-card:hover .all-domains-click-button {
+  opacity: 0; /* Hide the button on hover */
+  visibility: hidden; /* Ensure it's completely hidden */
+  bottom: 10px; /* Move down while fading */
+  transform: translateX(-50%) translateY(10px); /* Ensure it moves straight down */
 }
 
-/* Add Domain Card Styles */
-.add-domain-card {
+/* Add Domain Card Styles - Updated */
+.all-domains-add-card {
   background-color: #f0f0f0;
-  border: 3px dashed #cc1e4a; /* Changed to dashed border for better visual */
+  border: 3px dashed #cc1e4a;
   color: #333;
   cursor: pointer;
-  overflow: hidden; /* Contain effects within card */
+  overflow: hidden;
 }
 
-.add-domain-card .top-image {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 160px;
-  background-color: #e0e0e0;
+/* Add Domain Card - No top image needed */
+.all-domains-add-card .all-domains-top-image {
+  display: none;
 }
 
-.add-domain-card .top-image img {
-  width: 80px;
-  height: 80px;
-  opacity: 0.8;
-}
-
-.add-domain-card .domain-title {
+.all-domains-add-card .all-domains-title {
   font-size: 2rem;
   color: #007bff;
-  margin: 15px 0 10px;
-  margin-top: 100px; /* Added to move text down */
+  margin: 60px 0 20px 0; /* Adjusted for better centering */
 }
 
-.add-domain-card .domain-description {
+.all-domains-add-card .all-domains-description {
   font-size: 1rem;
   color: #555;
-  transition: all 0.3s ease; /* Add transition for smoother effect */
+  transition: all 0.3s ease;
+  margin-bottom: 40px; /* Space for button */
 }
 
-.add-domain-card:hover {
+.all-domains-add-card:hover {
   background-color: #cc1e4a;
-  transform: translateY(-10px) scale(1.02); /* Add slight scaling effect */
-  box-shadow: 0 15px 25px rgba(0, 0, 0, 0.3); /* Improved shadow */
+  transform: translateY(-10px) scale(1.02);
+  box-shadow: 0 15px 25px rgba(0, 0, 0, 0.3);
 }
 
-.add-domain-card:hover .domain-title,
-.add-domain-card:hover .domain-description {
-  opacity: 1; /* Changed from 0 to keep text visible */
-  color: white; /* Change text color on hover */
-  transform: translateY(20px); /* Add slight movement effect */
-  font-weight: 600; /* Make text bolder on hover */
+.all-domains-add-card:hover .all-domains-title,
+.all-domains-add-card:hover .all-domains-description {
+  opacity: 1;
+  color: white;
+  transform: translateY(20px);
+  font-weight: 600;
 }
 
-.add-domain-card:hover::after {
+.all-domains-add-card:hover::after {
   content: "+";
   position: absolute;
   top: 40px;
@@ -269,14 +293,82 @@
   color: rgba(255, 255, 255, 0.7);
 }
 
-.add-domain-card .click-button {
+.all-domains-add-card .all-domains-click-button {
   background-color: #28a745;
   color: white;
   font-weight: bold;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-.add-domain-card:hover .click-button {
+.all-domains-add-card:hover .all-domains-click-button {
   background-color: #e7eaee;
   color: #cc1e4a;
+}
+
+/* Loading and Error States */
+.all-domains-loading {
+  text-align: center;
+  font-size: 1.5rem;
+  color: #e7eaee;
+  padding: 50px;
+}
+
+.all-domains-error {
+  text-align: center;
+  font-size: 1.5rem;
+  color: #cc1e4a;
+  padding: 50px;
+}
+
+.all-domains-no-domains-message {
+  text-align: center;
+  font-size: 1.2rem;
+  color: #e7eaee;
+  padding: 20px;
+}
+
+.all-domains-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 1rem;
+  color: #666;
+}
+
+/* Mobile Responsiveness */
+@media screen and (max-width: 768px) {
+  .all-domains-container {
+    margin-top: 100px; /* More space on mobile */
+  }
+
+  .all-domains-card {
+    width: 300px;
+    height: 360px;
+    margin-top: 70px;
+  }
+
+  .all-domains-top-image {
+    width: 130px;
+    height: 130px;
+    top: -65px;
+  }
+
+  .all-domains-top-image img {
+    width: 120px;
+    height: 120px;
+  }
+
+  .all-domains-title {
+    font-size: 1.8rem;
+  }
+
+  .all-domains-description {
+    font-size: 0.9rem;
+  }
+
+  .all-domains-hover-content {
+    padding-top: 60px;
+  }
 }
